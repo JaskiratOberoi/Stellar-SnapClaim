@@ -30,7 +30,8 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
     o.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower;
-    o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    // Nulls are written explicitly: the app's types say `null`, and dropping the key turns it into undefined.
+    o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
     o.SerializerOptions.PropertyNameCaseInsensitive = true;
     o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
 });
