@@ -8,6 +8,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~58.0.22",
     "expo-constants": "~58.0.14",
+    "expo-dev-client": "~58.0.18",
     "expo-device": "~58.0.5",
     "expo-font": "~58.0.11",
     "expo-glass-effect": "~58.0.5",
@@ -36,7 +37,8 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "eas-cli": "^27.2.0"
   },
   "scripts": {
     "start": "expo start",
@@ -47,7 +49,11 @@
     "web:export": "expo export --platform web",
     "typecheck": "tsc --noEmit",
     "desktop": "npm --prefix desktop run dev",
-    "desktop:build": "npm run web:export && npm --prefix desktop run build"
+    "desktop:build": "npm run web:export && npm --prefix desktop run build",
+    "eas:dev": "eas build --profile development --platform all",
+    "eas:dev:sim": "eas build --profile development-simulator --platform ios",
+    "eas:preview": "eas build --profile preview --platform all",
+    "eas:prod": "eas build --profile production --platform all"
   },
   "private": true
 }
