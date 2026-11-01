@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useSettings } from '@/hooks/use-settings';
+import { useStore } from '@/hooks/use-store';
 import {
   newId,
   resolveAssistant,
@@ -8,6 +9,8 @@ import {
   type ChatMessage,
   type Conversation,
 } from '@/services/assistant';
+import { runCommand } from '@/services/assistant/actions';
+import { parseCommand } from '@/services/nlp/parse-command';
 import {
   DEFAULT_CONVERSATION_ID,
   deleteConversation,
@@ -18,6 +21,10 @@ import {
 function emptyConversation(): Conversation {
   const now = Date.now();
   return { id: DEFAULT_CONVERSATION_ID, messages: [], createdAt: now, updatedAt: now };
+}
+
+export function currentLocale(): string {
+  return Intl.DateTimeFormat().resolvedOptions().locale || 'en-US';
 }
 
 function currentContext(userName: string): AssistantContext {
@@ -31,6 +38,7 @@ function currentContext(userName: string): AssistantContext {
 
 export function useChat() {
   const { settings, claudeApiKey } = useSettings();
+  const store = useStore();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
@@ -59,7 +67,10 @@ export function useChat() {
 
   const assistant = resolveAssistant(settings.provider, claudeApiKey);
 
-  /** Send a user message and resolve with the assistant's answer. */
+  /**
+   * Send a user message. Store commands ("remind me…", "spent 250 on…") are
+   * handled locally first; anything else goes to the configured assistant.
+   */
   const send = useCallback(
     async (text: string): Promise<ChatMessage | null> => {
       const trimmed = text.trim();
@@ -77,14 +88,27 @@ export function useChat() {
 
       let reply: ChatMessage;
       try {
-        const answer = await assistant.reply(history, currentContext(settings.userName));
-        reply = {
-          id: newId(),
-          role: 'assistant',
-          text: answer.text,
-          createdAt: Date.now(),
-          provider: answer.provider,
-        };
+        const command = parseCommand(trimmed);
+        if (command) {
+          const result = await runCommand(command, { store, locale: currentLocale() });
+          reply = {
+            id: newId(),
+            role: 'assistant',
+            text: result.text,
+            createdAt: Date.now(),
+            provider: 'local',
+          };
+        } else {
+          const context = { ...currentContext(settings.userName), store };
+          const answer = await assistant.reply(history, context);
+          reply = {
+            id: newId(),
+            role: 'assistant',
+            text: answer.text,
+            createdAt: Date.now(),
+            provider: answer.provider,
+          };
+        }
       } catch (error) {
         reply = {
           id: newId(),
@@ -101,7 +125,7 @@ export function useChat() {
       commit([...conversation.current.messages, reply]);
       return reply;
     },
-    [assistant, commit, isThinking, settings.userName],
+    [assistant, commit, isThinking, settings.userName, store],
   );
 
   const clear = useCallback(async () => {

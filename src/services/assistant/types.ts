@@ -31,6 +31,8 @@ export type AssistantContext = {
   timeZone: string;
   /** BCP 47 locale, used for formatting. */
   locale: string;
+  /** The task and expense store, when the provider may read or change it. */
+  store?: import('@/hooks/use-store').StoreApi;
 };
 
 export type AssistantReply = {

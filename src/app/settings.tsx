@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'reac
 import { ThemedText } from '@/components/themed-text';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useSettings } from '@/hooks/use-settings';
+import { useStore } from '@/hooks/use-store';
 import { useTheme } from '@/hooks/use-theme';
 import type { ProviderPreference } from '@/services/assistant';
 import { CLAUDE_MODEL } from '@/services/assistant/claude-assistant';
@@ -21,9 +22,12 @@ export default function SettingsScreen() {
 
   const [name, setName] = useState(settings.userName);
   const [language, setLanguage] = useState(settings.voiceLanguage);
+  const [currency, setCurrency] = useState(settings.currency);
   const [keyDraft, setKeyDraft] = useState('');
   const [keySaved, setKeySaved] = useState(false);
   const [cleared, setCleared] = useState(false);
+  const [wipeStage, setWipeStage] = useState<0 | 1 | 2>(0);
+  const { tasks, expenses, clearEverything } = useStore();
 
   const inputStyle = [
     styles.input,
@@ -158,7 +162,29 @@ export default function SettingsScreen() {
           </Field>
         </Section>
 
+        <Section title="Expenses">
+          <Field label="Currency" hint="ISO code such as INR, USD or EUR. Used when an expense does not name one.">
+            <TextInput
+              style={inputStyle}
+              value={currency}
+              onChangeText={(text) => setCurrency(text.toUpperCase())}
+              onBlur={() =>
+                void updateSettings({ currency: /^[A-Z]{3}$/.test(currency.trim()) ? currency.trim() : 'INR' })
+              }
+              placeholder="INR"
+              placeholderTextColor={theme.textSecondary}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={3}
+              accessibilityLabel="Currency"
+            />
+          </Field>
+        </Section>
+
         <Section title="Data">
+          <ThemedText type="small" themeColor="textSecondary">
+            {tasks.length} tasks and {expenses.length} expenses are stored on this device.
+          </ThemedText>
           <Button
             label={cleared ? 'Conversation cleared' : 'Clear conversation'}
             tone="danger"
@@ -168,9 +194,19 @@ export default function SettingsScreen() {
               setCleared(true);
             }}
           />
-          <ThemedText type="small" themeColor="textSecondary">
-            The chat screen reloads the empty conversation when you return to it.
-          </ThemedText>
+          <Button
+            label={wipeStage === 2 ? 'Everything deleted' : wipeStage === 1 ? 'Tap again to delete all tasks and expenses' : 'Delete all tasks and expenses'}
+            tone="danger"
+            disabled={wipeStage === 2}
+            onPress={async () => {
+              if (wipeStage === 0) {
+                setWipeStage(1);
+                return;
+              }
+              await clearEverything();
+              setWipeStage(2);
+            }}
+          />
         </Section>
       </View>
     </ScrollView>

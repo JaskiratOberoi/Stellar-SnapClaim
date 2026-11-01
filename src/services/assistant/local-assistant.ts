@@ -105,11 +105,11 @@ const rules: Rule[] = [
     answer: (_match, context) => greetingFor(context),
   },
   {
-    test: /\b(what('s| is) the )?time\b/i,
+    test: /^(what('s| is) the )?time( is it| now)?( please)?\??$/i,
     answer: (_match, context) => `It is ${formatTime(context)}.`,
   },
   {
-    test: /\b(what('s| is) (the |today's )?date|what day is it|today)\b/i,
+    test: /^(what('s| is) (the |today's )?date( today)?|what day is it( today)?|what('s| is) today('s date)?)\??$/i,
     answer: (_match, context) => `Today is ${formatDate(context)}.`,
   },
   {

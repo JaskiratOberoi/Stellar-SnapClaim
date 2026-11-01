@@ -1,22 +1,27 @@
 # Assistant
 
-A helpful virtual personal assistant for Android, iPhone and Windows, built from
-one codebase with [Expo](https://expo.dev) and React Native.
+A personal assistant that is also your storehouse: tasks, reminders and
+expenses, kept on your device and driven by plain language. One codebase for
+Android, iPhone and Windows, built with [Expo](https://expo.dev) and React
+Native.
 
-- **Android and iPhone** – the native app, built in the cloud with EAS.
-- **Windows** – the same app exported to the web and wrapped in Electron.
-- **Web** – runs in any modern browser as a bonus.
+## What it does
 
-## What it does today
-
-- Chat with the assistant by typing or by voice (speech-to-text on Android, iOS
-  and Chrome/Safari; text-to-speech everywhere).
-- **Offline mode** answers the time, the date, greetings and arithmetic without
-  any network.
-- **Claude mode** holds full conversations through the Claude API using your own
-  API key, which is stored only on the device (secure storage on mobile).
-- Settings for your name, assistant mode, voice language and read-aloud.
-- The conversation is saved locally and survives restarts.
+- **Today** – what is due, what is overdue, upcoming reminders, this month's
+  spend and recent expenses, with a quick-add bar that understands sentences
+  like `call Ravi tomorrow 5pm` or `250 lunch`.
+- **Tasks** – open, today, reminders and done views; priorities; due dates;
+  reminders that fire as local notifications on the phone.
+- **Expenses** – month-by-month list grouped by day, totals, category breakdown,
+  automatic category guessing from the note, any currency.
+- **Assistant** – a chat that reads and writes the same store. Type or speak
+  `remind me to pay rent on the 5th`, `spent 1200 on electricity yesterday`,
+  `show my tasks`, `what did I spend this month`. Replies can be read aloud.
+  - **Offline mode** handles all store commands plus the time, date and
+    arithmetic with no network.
+  - **Claude mode** adds real conversation and uses tools over the store, with
+    your own API key kept on the device.
+- Everything is stored locally (AsyncStorage; the API key in secure storage).
 
 ## Getting started
 
@@ -25,54 +30,30 @@ npm install
 npm start
 ```
 
-Then press `w` for the web build, scan the QR code with the Expo Go app on your
-phone, or press `a` / `i` for an emulator.
-
-Voice input needs the native speech module, which is **not** part of Expo Go.
-For voice on a phone, make a development build once (see below).
+Press `w` for the web build, scan the QR code with Expo Go, or press `a` / `i`
+for an emulator. Voice input and reminder notifications need the native
+modules, which are **not** part of Expo Go: use a development build (below).
 
 ## Building for Android and iPhone with EAS
 
 Builds run in Expo's cloud, so no Android Studio, Xcode or Mac is needed. The
-profiles live in `eas.json`.
-
-One-time setup, done from your own Expo account:
-
-```bash
-npx eas-cli@latest login
-```
-
-```bash
-npx eas-cli@latest init
-```
-
-`init` links this folder to a project on expo.dev and writes the project id
-into `app.json`. Commit that change.
+profiles live in `eas.json`; the project is linked to the `jaskiratoberoi-noble`
+Expo account.
 
 | Profile | Command | What you get |
 | --- | --- | --- |
-| `development` | `npm run eas:dev` | Debug app with the dev client and voice input; loads JS from `npm start`. Android APK, iOS needs a registered device. |
+| `development` | `npm run eas:dev` | Debug app with the dev client, voice and notifications; loads JS from `npm start`. Android APK, iOS needs a registered device. |
 | `development-simulator` | `npm run eas:dev:sim` | Same, for the iOS Simulator on a Mac. |
-| `preview` | `npm run eas:preview` | Release build with a shareable install link. Android APK, iOS ad-hoc. |
-| `production` | `npm run eas:prod` | Store build. Android AAB, iOS App Store. Build number auto-increments. |
+| `preview` | `npm run eas:preview` | Release build with a shareable install link. |
+| `production` | `npm run eas:prod` | Store build. Build number auto-increments. |
 
 Each script builds both platforms; add `-- --platform android` or
-`-- --platform ios` to pick one. The first iOS build asks for an Apple
-Developer account (needed for any real-device iOS build); the first Android
-build generates and stores a keystore for you.
-
-To publish, after a production build:
+`-- --platform ios` to pick one. iOS device builds need an Apple Developer
+account. To publish after a production build:
 
 ```bash
 npx eas-cli@latest submit --platform android
 ```
-
-```bash
-npx eas-cli@latest submit --platform ios
-```
-
-Android submission needs a Google Play service-account key; iOS needs the
-Apple account used for the build.
 
 ## Windows desktop
 
@@ -80,25 +61,25 @@ Apple account used for the build.
 npm run desktop
 ```
 
-This opens the Electron shell pointed at the running web dev server (start
-`npm run web` first). To produce an installer:
-
-```bash
-npm run desktop:build
-```
-
-The installer is written to `desktop/release/`.
+Opens the Electron shell against the running web dev server (start `npm run
+web` first). `npm run desktop:build` writes an installer to `desktop/release/`.
 
 ## Project layout
 
 ```
-src/app/            Expo Router screens (index = chat, settings)
-src/components/     UI building blocks
-src/hooks/          use-chat, use-settings, theming
+src/app/
+  (tabs)/           Today, Tasks, Expenses, Assistant
+  task/[id].tsx     task editor (id "new" creates)
+  expense/[id].tsx  expense editor
+  settings.tsx
+src/components/     rows, chips, quick-add bar, date field, chat pieces
+src/hooks/          use-store (tasks + expenses), use-settings, use-chat
 src/services/
-  assistant/        AssistantProvider contract, offline + Claude implementations
-  speech/           text-to-speech and speech-to-text wrappers
-  storage/          settings, API key and conversation persistence
+  store/            domain types and persistence
+  nlp/              parse-command: sentences -> structured commands
+  assistant/        AssistantProvider contract, actions, offline + Claude
+  reminders/        local notifications
+  speech/           text-to-speech and speech-to-text
 desktop/            Electron shell for Windows
 ```
 
@@ -106,7 +87,7 @@ desktop/            Electron shell for Windows
 
 | Command | What it does |
 | --- | --- |
+| `npm run typecheck` | Type check |
 | `npm run lint` | ESLint |
-| `npx tsc --noEmit` | Type check |
 | `npm run web:export` | Static web export to `dist/` |
 | `npx expo-doctor` | Diagnose dependency and config problems |

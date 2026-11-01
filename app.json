@@ -50,7 +50,14 @@
           "speechRecognitionPermission": "Assistant turns your speech into text so it can answer you."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#2F6BFF",
+          "defaultChannel": "reminders"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

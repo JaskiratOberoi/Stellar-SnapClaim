@@ -17,6 +17,8 @@ export type Settings = {
   speakReplies: boolean;
   /** BCP 47 tag used for both speech recognition and text-to-speech. */
   voiceLanguage: string;
+  /** ISO 4217 code for expenses that do not name a currency. */
+  currency: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -24,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   provider: 'auto',
   speakReplies: true,
   voiceLanguage: 'en-US',
+  currency: 'INR',
 };
 
 const SETTINGS_KEY = 'assistant.settings.v1';
