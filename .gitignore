@@ -1,0 +1,32 @@
+# secrets / env
+deploy/.env
+deploy/.env.*
+!deploy/.env.example
+api/.env.dev
+**/google-services.json
+**/GoogleService-Info.plist
+*.p8
+
+# .NET
+api/**/bin/
+api/**/obj/
+*.user
+
+# node / expo
+node_modules/
+app/.expo/
+app/dist/
+app/web-build/
+app/ios/
+app/android/
+app/expo-env.d.ts
+*.orig.*
+*.jks
+*.p12
+*.key
+*.mobileprovision
+
+# misc
+.DS_Store
+Thumbs.db
+*.log

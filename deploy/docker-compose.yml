@@ -1,0 +1,51 @@
+name: snapclaim
+
+services:
+  snapclaim-db:
+    image: postgres:16-alpine
+    container_name: snapclaim-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: snapclaim
+      POSTGRES_USER: snapclaim
+      POSTGRES_PASSWORD: ${SNAPCLAIM_DB_PASSWORD:?set in deploy/.env}
+      TZ: Asia/Kolkata
+    volumes:
+      - snapclaim_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snapclaim -d snapclaim"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  snapclaim-api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    container_name: snapclaim-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      SNAPCLAIM_DB_CONNECTION: Host=snapclaim-db;Database=snapclaim;Username=snapclaim;Password=${SNAPCLAIM_DB_PASSWORD}
+      TZ: Asia/Kolkata
+    depends_on:
+      snapclaim-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${SNAPCLAIM_API_PORT:-3170}:8080"
+
+  # Static web build of the Expo app (managers and directors on the desktop).
+  snapclaim-web:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+      args:
+        EXPO_PUBLIC_API_URL: ${SNAPCLAIM_PUBLIC_API_URL:?set in deploy/.env}
+    container_name: snapclaim-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SNAPCLAIM_WEB_PORT:-3171}:80"
+
+volumes:
+  snapclaim_pgdata:

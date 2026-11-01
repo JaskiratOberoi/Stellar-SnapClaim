@@ -1,0 +1,13 @@
+# Append to the host Caddyfile, then validate and reload.
+snapclaim.example.com {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:3171
+}
+
+api-snapclaim.example.com {
+    encode zstd gzip
+    request_body {
+        max_size 10MB
+    }
+    reverse_proxy 127.0.0.1:3170
+}
