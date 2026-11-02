@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "instrument sans",
+        "createdAt": "2026-11-02T11:43:02.618Z",
+        "reason": "Jas pinned the Nourish reference (nourish-mauve.vercel.app), which sets Instrument Sans + Fraunces; copied on instruction"
+      }
+    ]
+  }
+}
