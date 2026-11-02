@@ -1,20 +1,38 @@
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { FlashView } from '@/motion/flash-view';
+import { webTransition } from '@/motion/transition';
 
-type Props = TextInputProps & { label: string; hint?: string; error?: string | null; trailing?: ReactNode; prefix?: string };
+type Props = TextInputProps & {
+  label: string;
+  hint?: string;
+  error?: string | null;
+  trailing?: ReactNode;
+  prefix?: string;
+  /** Bump to light the field up, for a value that arrived on its own (read from a receipt). */
+  flashKey?: number;
+  flashDelay?: number;
+};
 
-export function Field({ label, hint, error, trailing, prefix, style, ...rest }: Props) {
+export function Field({ label, hint, error, trailing, prefix, style, flashKey, flashDelay, onFocus, onBlur, ...rest }: Props) {
   const theme = useTheme();
+  const [focused, setFocused] = useState(false);
+  const border = error ? theme.danger : focused ? theme.accent : 'transparent';
   return (
     <View style={styles.wrap}>
       <ThemedText type="smallBold" themeColor="textSecondary">
         {label}
       </ThemedText>
-      <View style={[styles.row, { backgroundColor: theme.backgroundElement, borderColor: error ? theme.danger : 'transparent' }]}>
+      <FlashView
+        style={[styles.row, { borderColor: border }, webTransition('border-color, background-color')]}
+        baseColor={theme.backgroundElement}
+        flashColor={theme.accentSoft}
+        flashKey={flashKey}
+        delay={flashDelay}>
         {prefix ? (
           <ThemedText themeColor="textSecondary" style={styles.prefix}>
             {prefix}
@@ -22,11 +40,20 @@ export function Field({ label, hint, error, trailing, prefix, style, ...rest }: 
         ) : null}
         <TextInput
           placeholderTextColor={theme.textSecondary}
+          selectionColor={theme.accent}
           style={[styles.input, { color: theme.text }, style]}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
           {...rest}
         />
         {trailing}
-      </View>
+      </FlashView>
       {error ? (
         <ThemedText type="small" style={{ color: theme.danger }}>
           {error}
@@ -50,9 +77,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Radius.medium,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.three,
-    minHeight: 46,
+    borderWidth: 1.5,
+    paddingHorizontal: Spacing.three - 1.5,
+    minHeight: 48,
   },
   prefix: { marginRight: Spacing.one },
   input: { flex: 1, fontSize: 16, paddingVertical: Spacing.two, outlineWidth: 0 },

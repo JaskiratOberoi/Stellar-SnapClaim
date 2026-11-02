@@ -13,6 +13,8 @@ import { Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { Presence } from '@/motion/presence';
+import { Reveal } from '@/motion/reveal';
 import { api, describeError } from '@/services/api';
 import { formatMoney, pluralise } from '@/services/format';
 import type { ApprovalQueue, Claim } from '@/services/types';
@@ -63,6 +65,7 @@ export default function ApprovalsScreen() {
       setNote('');
       setRejecting(false);
       reload();
+      setTimeout(() => setNotice(null), 4000);
     } catch (err) {
       setNotice(describeError(err));
     } finally {
@@ -77,7 +80,7 @@ export default function ApprovalsScreen() {
       <FlatList
         data={items}
         keyExtractor={(c) => c.id}
-        renderItem={({ item }) => <ClaimRow claim={item} showEmployee selected={selected.has(item.id)} onToggleSelect={toggle} />}
+        renderItem={({ item, index }) => <ClaimRow claim={item} index={index} showEmployee selected={selected.has(item.id)} onToggleSelect={toggle} />}
         ListHeaderComponent={
           <View style={styles.toolbar}>
             <Chip label={`All (${data?.total ?? 0})`} selected={!onlyFlagged} onPress={() => setOnlyFlagged(false)} />
@@ -90,37 +93,44 @@ export default function ApprovalsScreen() {
             {error ? <ErrorNote message={error} onRetry={reload} /> : null}
           </View>
         }
-        ListEmptyComponent={loading ? <Loading /> : <EmptyNote>Nothing waiting for you. Submitted claims from your team land here.</EmptyNote>}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        ListEmptyComponent={
+          loading ? (
+            <Loading />
+          ) : (
+            <Reveal y={8}>
+              <EmptyNote>Nothing waiting for you. Submitted claims from your team land here.</EmptyNote>
+            </Reveal>
+          )
+        }
+        contentContainerStyle={{ paddingBottom: insets.bottom + 150 }}
         keyboardShouldPersistTaps="handled"
       />
-      {chosen.length > 0 || notice ? (
-        <View style={[styles.bar, { backgroundColor: theme.background, borderTopColor: theme.border, paddingBottom: insets.bottom + Spacing.two }]}>
-          {notice ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              {notice}
-            </ThemedText>
-          ) : null}
-          {chosen.length > 0 ? (
-            <>
+      <Presence
+        visible={chosen.length > 0 || notice !== null}
+        y={24}
+        style={[styles.bar, { backgroundColor: theme.background, borderTopColor: theme.border, shadowColor: theme.shadow, paddingBottom: insets.bottom + Spacing.two }]}>
+        {notice ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            {notice}
+          </ThemedText>
+        ) : null}
+        {chosen.length > 0 ? (
+          <>
+            {rejecting ? <Field label="Reason for rejection" value={note} onChangeText={setNote} placeholder="Tell the employee what to fix" autoFocus /> : null}
+            <View style={styles.actions}>
+              <ThemedText type="smallBold" style={styles.summary} numberOfLines={2}>
+                {pluralise(chosen.length, 'claim')} · {formatMoney(chosenAmount, company?.currency)}
+              </ThemedText>
+              <Button title={rejecting ? 'Confirm reject' : 'Reject'} variant="danger" compact loading={busy && rejecting} disabled={busy} onPress={() => decide('reject')} />
               {rejecting ? (
-                <Field label="Reason for rejection" value={note} onChangeText={setNote} placeholder="Tell the employee what to fix" autoFocus />
-              ) : null}
-              <View style={styles.actions}>
-                <ThemedText type="smallBold" style={styles.summary}>
-                  {pluralise(chosen.length, 'claim')} · {formatMoney(chosenAmount, company?.currency)}
-                </ThemedText>
-                <Button title={rejecting ? 'Confirm reject' : 'Reject'} variant="danger" compact loading={busy && rejecting} disabled={busy} onPress={() => decide('reject')} />
-                {rejecting ? (
-                  <Button title="Cancel" variant="secondary" compact onPress={() => setRejecting(false)} />
-                ) : (
-                  <Button title="Approve" compact icon={{ ios: 'checkmark', android: 'check', web: 'check' }} loading={busy} onPress={() => decide('approve')} />
-                )}
-              </View>
-            </>
-          ) : null}
-        </View>
-      ) : null}
+                <Button title="Cancel" variant="secondary" compact onPress={() => setRejecting(false)} />
+              ) : (
+                <Button title="Approve" compact icon={{ ios: 'checkmark', android: 'check', web: 'check' }} loading={busy} onPress={() => decide('approve')} />
+              )}
+            </View>
+          </>
+        ) : null}
+      </Presence>
     </Screen>
   );
 }
@@ -128,7 +138,19 @@ export default function ApprovalsScreen() {
 const styles = StyleSheet.create({
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.three },
   spacer: { flex: 1 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopWidth: StyleSheet.hairlineWidth, padding: Spacing.three, gap: Spacing.two },
+  bar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.three,
+    gap: Spacing.two,
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -6 },
+    elevation: 8,
+  },
   actions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   summary: { flex: 1 },
 });

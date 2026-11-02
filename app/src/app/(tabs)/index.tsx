@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
@@ -12,6 +12,10 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { CountUp } from '@/motion/count-up';
+import { Presence } from '@/motion/presence';
+import { Reveal } from '@/motion/reveal';
+import { Tap } from '@/motion/tap';
 import { api } from '@/services/api';
 import { currentPeriod, formatMoney, pluralise } from '@/services/format';
 import type { Claim, ClaimStatus } from '@/services/types';
@@ -25,6 +29,8 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'cleared', label: 'Cleared' },
   { value: 'rejected', label: 'Rejected' },
 ];
+
+const whole = (n: number) => String(Math.round(n));
 
 export default function MyClaimsScreen() {
   const theme = useTheme();
@@ -46,22 +52,29 @@ export default function MyClaimsScreen() {
   const thisMonth = items.filter((c) => c.period === period && c.status !== 'rejected' && c.status !== 'draft');
   const pending = items.filter((c) => c.status === 'submitted');
   const currency = company?.currency ?? 'INR';
+  const money = useCallback((n: number) => formatMoney(Math.round(n), currency), [currency]);
 
   return (
     <Screen title="My claims" subtitle={user?.full_name}>
       <FlatList
         data={items}
         keyExtractor={(c) => c.id}
-        renderItem={({ item }) => <ClaimRow claim={item} />}
+        renderItem={({ item, index }) => <ClaimRow claim={item} index={index} />}
         ListHeaderComponent={
           <View>
-            {filter === 'all' ? (
+            <Presence visible={filter === 'all'} y={8}>
               <View style={styles.tiles}>
-                <Tile label="This month" value={formatMoney(thisMonth.reduce((s, c) => s + c.amount, 0), currency)} />
-                <Tile label="Awaiting approval" value={String(pending.length)} tone={pending.length ? 'warning' : undefined} />
-                <Tile label="Claims" value={String(data?.total ?? 0)} />
+                <Reveal delay={0} style={styles.hero}>
+                  <Tile hero label="This month" value={thisMonth.reduce((s, c) => s + c.amount, 0)} format={money} />
+                </Reveal>
+                <Reveal delay={60} style={styles.flex}>
+                  <Tile label="Awaiting" value={pending.length} format={whole} tone={pending.length ? 'warning' : undefined} />
+                </Reveal>
+                <Reveal delay={120} style={styles.flex}>
+                  <Tile label="Claims" value={data?.total ?? 0} format={whole} />
+                </Reveal>
               </View>
-            ) : null}
+            </Presence>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filters}>
               {FILTERS.map((f) => (
                 <Chip key={f.value} label={f.label} selected={filter === f.value} onPress={() => setFilter(f.value)} />
@@ -74,22 +87,27 @@ export default function MyClaimsScreen() {
           loading ? (
             <Loading />
           ) : (
-            <EmptyNote>
-              {filter === 'all' ? 'No claims yet. Tap Snap receipt to file your first one.' : `No ${FILTERS.find((f) => f.value === filter)?.label.toLowerCase()} claims.`}
-            </EmptyNote>
+            <Reveal y={8}>
+              <EmptyNote>
+                {filter === 'all' ? 'No claims yet. Tap Snap receipt to file your first one.' : `No ${FILTERS.find((f) => f.value === filter)?.label.toLowerCase()} claims.`}
+              </EmptyNote>
+            </Reveal>
           )
         }
-        contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         keyboardShouldPersistTaps="handled"
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Snap receipt"
-        onPress={() => router.push('/claim/new')}
-        style={({ pressed }) => [styles.fab, { backgroundColor: theme.accent, bottom: insets.bottom + Spacing.three, opacity: pressed ? 0.85 : 1 }]}>
-        <SymbolView name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }} size={20} tintColor={theme.textOnAccent} />
-        <ThemedText style={{ color: theme.textOnAccent, fontWeight: 700 }}>Snap receipt</ThemedText>
-      </Pressable>
+      <Reveal delay={200} y={20} style={[styles.fabOuter, { bottom: insets.bottom + Spacing.three }]}>
+        <Tap
+          accessibilityRole="button"
+          accessibilityLabel="Snap receipt"
+          scale={0.93}
+          onPress={() => router.push('/claim/new')}
+          style={({ pressed }) => [styles.fab, { backgroundColor: pressed ? theme.accentStrong : theme.accent, shadowColor: theme.shadow }]}>
+          <SymbolView name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }} size={20} tintColor={theme.textOnAccent} />
+          <ThemedText style={{ color: theme.textOnAccent, fontWeight: 700 }}>Snap receipt</ThemedText>
+        </Tap>
+      </Reveal>
       {data && data.total > items.length ? (
         <ThemedText type="small" themeColor="textSecondary" style={styles.more}>
           Showing {pluralise(items.length, 'claim')} of {data.total}
@@ -99,40 +117,39 @@ export default function MyClaimsScreen() {
   );
 }
 
-function Tile({ label, value, tone }: { label: string; value: string; tone?: 'warning' }) {
+function Tile({ label, value, format, tone, hero }: { label: string; value: number; format: (n: number) => string; tone?: 'warning'; hero?: boolean }) {
   const theme = useTheme();
+  const fg = hero ? theme.textOnAccent : tone === 'warning' ? theme.warning : theme.text;
   return (
-    <View style={[styles.tile, { backgroundColor: theme.backgroundElement }]}>
-      <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+    <View style={[styles.tile, { backgroundColor: hero ? theme.accent : theme.backgroundElement }]}>
+      <ThemedText type="small" style={{ color: hero ? theme.textOnAccent : theme.textSecondary, opacity: hero ? 0.85 : 1 }} numberOfLines={1}>
         {label}
       </ThemedText>
-      <ThemedText style={[styles.tileValue, tone === 'warning' && { color: theme.warning }]} numberOfLines={1} adjustsFontSizeToFit>
-        {value}
-      </ThemedText>
+      <CountUp value={value} format={format} style={[styles.tileValue, { color: fg }]} numberOfLines={1} adjustsFontSizeToFit />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  hero: { flex: 1.5 },
   tiles: { flexDirection: 'row', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
-  tile: { flex: 1, borderRadius: Radius.medium, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two + Spacing.half, gap: Spacing.half },
-  tileValue: { fontSize: 22, lineHeight: 28, fontWeight: 700 },
+  tile: { flex: 1, borderRadius: Radius.medium, paddingHorizontal: Spacing.three, paddingVertical: Spacing.three, gap: Spacing.one, minHeight: 84, justifyContent: 'flex-end' },
+  tileValue: { fontSize: 24, lineHeight: 30, fontWeight: 800, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   filterScroll: { flexGrow: 0 },
   filters: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.three },
+  fabOuter: { position: 'absolute', right: Spacing.three },
   fab: {
-    position: 'absolute',
-    right: Spacing.three,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
     paddingHorizontal: Spacing.four,
-    height: 52,
+    height: 54,
     borderRadius: Radius.pill,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
   more: { textAlign: 'center', paddingBottom: Spacing.two },
 });

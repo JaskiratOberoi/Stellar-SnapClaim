@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -15,6 +15,8 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { Reveal } from '@/motion/reveal';
+import { Tap } from '@/motion/tap';
 import { api, describeError, receiptImageUrl } from '@/services/api';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/services/format';
 import type { ClaimDetail } from '@/services/types';
@@ -76,6 +78,7 @@ export default function ClaimDetailScreen() {
   return (
     <Screen title={claim.title} subtitle={`Claim #${claim.claim_no}${mine ? '' : ` · ${claim.employee.full_name}`}`} back>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }} keyboardShouldPersistTaps="handled">
+        <Reveal y={10}>
         <Card style={styles.hero}>
           <View style={styles.heroTop}>
             <ThemedText style={styles.amount}>{formatMoney(claim.amount, claim.currency)}</ThemedText>
@@ -89,6 +92,7 @@ export default function ClaimDetailScreen() {
           {claim.notes ? <Meta label="Notes" value={claim.notes} /> : null}
           {claim.decision_note ? <Meta label={claim.status === 'rejected' ? 'Rejected because' : 'Manager note'} value={`${claim.decision_note} — ${claim.decided_by_name ?? ''}`} /> : null}
         </Card>
+        </Reveal>
 
         {claim.policy_flags.length > 0 ? (
           <>
@@ -105,8 +109,9 @@ export default function ClaimDetailScreen() {
         ) : (
           <View style={styles.receipts}>
             {receipts.map((r) => (
-              <Pressable
+              <Tap
                 key={r.id}
+                scale={0.95}
                 accessibilityRole="button"
                 accessibilityLabel="View receipt"
                 onPress={() => router.push({ pathname: '/receipt/[id]', params: { id: r.id } })}
@@ -121,7 +126,7 @@ export default function ClaimDetailScreen() {
                 ) : (
                   <Image source={{ uri: receiptImageUrl(r.id) }} style={styles.flex} contentFit="cover" />
                 )}
-              </Pressable>
+              </Tap>
             ))}
           </View>
         )}
@@ -235,7 +240,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   hero: { marginTop: Spacing.three },
   heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.two },
-  amount: { fontSize: 30, lineHeight: 36, fontWeight: 800 },
+  amount: { fontSize: 32, lineHeight: 38, fontWeight: 800, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   meta: { flexDirection: 'row', gap: Spacing.two },
   metaLabel: { width: 110 },
   metaValue: { flex: 1 },

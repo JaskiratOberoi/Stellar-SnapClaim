@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -11,6 +11,8 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { Presence } from '@/motion/presence';
+import { Tap } from '@/motion/tap';
 import { api, describeError } from '@/services/api';
 import type { Role, User } from '@/services/types';
 
@@ -70,6 +72,7 @@ export default function UsersScreen() {
     <Screen title="People" subtitle={`${users.filter((u) => u.is_active).length} active`} back action={<Chip label="Add person" onPress={() => open('new')} />}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }} keyboardShouldPersistTaps="handled">
         {error ? <ErrorNote message={error} onRetry={reload} /> : null}
+        <Presence visible={editing !== null} y={10}>
         {editing ? (
           <>
             <SectionTitle>{editing === 'new' ? 'New person' : `Edit ${editing.full_name}`}</SectionTitle>
@@ -124,12 +127,13 @@ export default function UsersScreen() {
             </Card>
           </>
         ) : null}
+        </Presence>
 
         <SectionTitle>Everyone</SectionTitle>
         {loading && users.length === 0 ? <Loading /> : null}
         {users.length === 0 && !loading ? <EmptyNote>No people yet.</EmptyNote> : null}
         {users.map((u) => (
-          <Pressable key={u.id} accessibilityRole="button" onPress={() => open(u)} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.backgroundElement : 'transparent', opacity: u.is_active ? 1 : 0.5 }]}>
+          <Tap key={u.id} accessibilityRole="button" onPress={() => open(u)} scale={0.98} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.backgroundElement : 'transparent', opacity: u.is_active ? 1 : 0.5 }]}>
             <View style={styles.rowText}>
               <ThemedText style={{ fontWeight: 600 }}>
                 {u.full_name}
@@ -143,7 +147,7 @@ export default function UsersScreen() {
                 {u.is_active ? '' : ' · Inactive'}
               </ThemedText>
             </View>
-          </Pressable>
+          </Tap>
         ))}
       </ScrollView>
     </Screen>

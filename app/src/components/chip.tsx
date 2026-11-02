@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { Tap } from '@/motion/tap';
 
 type Props = { label: string; selected?: boolean; onPress?: () => void; tone?: 'default' | 'danger' | 'warning' | 'success' };
 
@@ -12,19 +13,20 @@ export function Chip({ label, selected, onPress, tone = 'default' }: Props) {
   const strong = { default: theme.accent, danger: theme.danger, warning: theme.warning, success: theme.success }[tone];
   const textColor = selected ? theme.textOnAccent : tone === 'default' ? theme.text : strong;
   return (
-    <Pressable
+    <Tap
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={{ selected }}
       disabled={!onPress}
       onPress={onPress}
-      style={({ pressed }) => [styles.chip, { backgroundColor: selected ? strong : soft, opacity: pressed ? 0.8 : 1 }]}>
-      <ThemedText type="small" style={{ color: textColor, fontWeight: 600 }}>
+      scale={0.94}
+      style={({ pressed }) => [styles.chip, { backgroundColor: selected ? strong : pressed ? theme.backgroundSelected : soft }]}>
+      <ThemedText type="small" style={{ color: textColor, fontWeight: 600 }} numberOfLines={1}>
         {label}
       </ThemedText>
-    </Pressable>
+    </Tap>
   );
 }
 
 const styles = StyleSheet.create({
-  chip: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.one + Spacing.half, borderRadius: Radius.pill },
+  chip: { paddingHorizontal: Spacing.three, minHeight: 36, justifyContent: 'center', borderRadius: Radius.pill },
 });

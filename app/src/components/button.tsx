@@ -1,9 +1,10 @@
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { ActivityIndicator, Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { Tap } from '@/motion/tap';
 
 type Props = {
   title: string;
@@ -19,18 +20,20 @@ type Props = {
 export function Button({ title, onPress, variant = 'primary', loading, disabled, icon, style, compact }: Props) {
   const theme = useTheme();
   const bg = { primary: theme.accent, secondary: theme.backgroundElement, danger: theme.danger, ghost: 'transparent' }[variant];
+  const bgPressed = { primary: theme.accentStrong, secondary: theme.backgroundSelected, danger: theme.danger, ghost: theme.backgroundElement }[variant];
   const fg = { primary: theme.textOnAccent, secondary: theme.text, danger: theme.textOnAccent, ghost: theme.accent }[variant];
   const off = disabled || loading;
   return (
-    <Pressable
+    <Tap
       accessibilityRole="button"
-      accessibilityState={{ disabled: off }}
+      accessibilityState={{ disabled: off, busy: loading }}
       disabled={off}
       onPress={onPress}
+      scale={0.96}
       style={({ pressed }) => [
         styles.button,
         compact && styles.compact,
-        { backgroundColor: bg, opacity: off ? 0.5 : pressed ? 0.85 : 1 },
+        { backgroundColor: pressed ? bgPressed : bg, opacity: disabled && !loading ? 0.45 : 1 },
         variant === 'ghost' && { paddingHorizontal: Spacing.two },
         style,
       ]}>
@@ -38,13 +41,13 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
         <ActivityIndicator color={fg} />
       ) : (
         <>
-          {icon ? <SymbolView name={icon} size={16} tintColor={fg} /> : null}
-          <ThemedText type={compact ? 'smallBold' : 'default'} style={{ color: fg, fontWeight: 600 }}>
+          {icon ? <SymbolView name={icon} size={compact ? 15 : 17} tintColor={fg} /> : null}
+          <ThemedText type={compact ? 'smallBold' : 'default'} style={{ color: fg, fontWeight: 700 }} numberOfLines={1}>
             {title}
           </ThemedText>
         </>
       )}
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -55,8 +58,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.two,
     paddingHorizontal: Spacing.four,
-    minHeight: 46,
+    minHeight: 48,
     borderRadius: Radius.medium,
   },
-  compact: { minHeight: 36, paddingHorizontal: Spacing.three, borderRadius: Radius.small },
+  compact: { minHeight: 38, paddingHorizontal: Spacing.three, borderRadius: Radius.small },
 });

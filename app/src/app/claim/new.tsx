@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -14,6 +14,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { Presence } from '@/motion/presence';
+import { Reveal } from '@/motion/reveal';
+import { Sheet } from '@/motion/sheet';
+import { Tap } from '@/motion/tap';
 import { ApiError, api, describeError, receiptImageUrl } from '@/services/api';
 import { formatMoney, parseIsoDate, todayIso, toIso } from '@/services/format';
 import { pickFile, pickFromLibrary, snapWithCamera, uploadReceipt } from '@/services/receipts';
@@ -46,6 +50,8 @@ export default function NewClaimScreen() {
   const [flags, setFlags] = useState<PolicyFlag[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<'draft' | 'submit' | null>(null);
+  // Bumped when a receipt fills the form, so the filled fields light up one after another.
+  const [filled, setFilled] = useState(0);
 
   // Edit mode: load the claim once.
   useEffect(() => {
@@ -117,6 +123,7 @@ export default function NewClaimScreen() {
     if (lines.length === 0 && x.lines.length > 0 && x.lines.length <= 25) {
       setLines(x.lines.map((l) => newLine(l.description, l.quantity === null ? '' : String(l.quantity), l.amount === null ? '' : String(l.amount))));
     }
+    setFilled((n) => n + 1);
   };
 
   const addReceipt = async (pick: () => Promise<{ base64: string; contentType: string } | null>) => {
@@ -181,140 +188,159 @@ export default function NewClaimScreen() {
 
   const blocked = flags.some((f) => f.severity === 'block');
   const currency = extraction?.currency ?? company?.currency ?? 'INR';
+  const updateLine = (key: number, patch: Partial<Line>) => setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
   return (
-    <Screen title={editing ? 'Edit claim' : 'New claim'} subtitle={extractionEnabled ? 'Snap the bill, check the details, submit' : 'Attach the bill and fill in the details'} back>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }} keyboardShouldPersistTaps="handled">
-          {loadingExisting ? <Loading /> : null}
+    <Sheet>
+      <Screen title={editing ? 'Edit claim' : 'New claim'} subtitle={extractionEnabled ? 'Snap the bill, check the details, submit' : 'Attach the bill and fill in the details'} back>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+          <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }} keyboardShouldPersistTaps="handled">
+            {loadingExisting ? <Loading /> : null}
 
-          <SectionTitle>Receipt</SectionTitle>
-          <View style={styles.receiptRow}>
-            {receipts.map((r) => (
-              <View key={r.id} style={[styles.thumb, { backgroundColor: theme.backgroundElement }]}>
-                <Pressable accessibilityRole="button" accessibilityLabel="View receipt" onPress={() => router.push({ pathname: '/receipt/[id]', params: { id: r.id } })} style={styles.flex}>
-                  {r.content_type === 'application/pdf' ? (
-                    <View style={styles.pdf}>
-                      <SymbolView name={{ ios: 'doc.richtext', android: 'picture_as_pdf', web: 'picture_as_pdf' }} size={32} tintColor={theme.textSecondary} />
-                      <ThemedText type="small" themeColor="textSecondary">
-                        PDF
-                      </ThemedText>
-                    </View>
-                  ) : (
-                    <Image source={{ uri: receiptImageUrl(r.id) }} style={styles.flex} contentFit="cover" />
-                  )}
-                </Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel="Remove receipt" hitSlop={8} onPress={() => removeReceipt(r)} style={[styles.remove, { backgroundColor: theme.background }]}>
-                  <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={14} tintColor={theme.text} />
-                </Pressable>
-              </View>
-            ))}
-            {uploading ? (
-              <View style={[styles.thumb, styles.pdf, { backgroundColor: theme.backgroundElement }]}>
-                <ActivityIndicator color={theme.accent} />
-                <ThemedText type="small" themeColor="textSecondary">
-                  {extractionEnabled ? 'Reading…' : 'Uploading…'}
-                </ThemedText>
-              </View>
-            ) : null}
-          </View>
-          <View style={styles.pickers}>
-            {Platform.OS !== 'web' ? (
-              <Button title="Snap" icon={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }} compact disabled={uploading} onPress={() => addReceipt(snapWithCamera)} />
-            ) : null}
-            <Button title="Photo" variant={Platform.OS === 'web' ? 'primary' : 'secondary'} icon={{ ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' }} compact disabled={uploading} onPress={() => addReceipt(pickFromLibrary)} />
-            <Button title="File / PDF" variant="secondary" icon={{ ios: 'paperclip', android: 'attach_file', web: 'attach_file' }} compact disabled={uploading} onPress={() => addReceipt(pickFile)} />
-          </View>
-          {extraction ? (
-            <Card style={[styles.extractionNote, { backgroundColor: theme.accentSoft }]}>
-              <ThemedText type="small" style={{ color: theme.accent, fontWeight: 600 }}>
-                Read from the receipt ({extraction.confidence} confidence). Check every field before submitting.
-              </ThemedText>
-              {extraction.notes ? (
-                <ThemedText type="small" style={{ color: theme.accent }}>
-                  {extraction.notes}
-                </ThemedText>
+            <SectionTitle>Receipt</SectionTitle>
+            <View style={styles.receiptRow}>
+              {receipts.map((r) => (
+                <Reveal key={r.id} y={8}>
+                  <View style={[styles.thumb, { backgroundColor: theme.backgroundElement }]}>
+                    <Tap accessibilityRole="button" accessibilityLabel="View receipt" scale={0.95} onPress={() => router.push({ pathname: '/receipt/[id]', params: { id: r.id } })} outerStyle={styles.flex} style={styles.flex}>
+                      {r.content_type === 'application/pdf' ? (
+                        <View style={styles.pdf}>
+                          <SymbolView name={{ ios: 'doc.richtext', android: 'picture_as_pdf', web: 'picture_as_pdf' }} size={32} tintColor={theme.textSecondary} />
+                          <ThemedText type="small" themeColor="textSecondary">
+                            PDF
+                          </ThemedText>
+                        </View>
+                      ) : (
+                        <Image source={{ uri: receiptImageUrl(r.id) }} style={styles.flex} contentFit="cover" transition={200} />
+                      )}
+                    </Tap>
+                    <Tap
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove receipt"
+                      hitSlop={8}
+                      scale={0.8}
+                      onPress={() => removeReceipt(r)}
+                      outerStyle={styles.removeOuter}
+                      style={[styles.remove, { backgroundColor: theme.background, shadowColor: theme.shadow }]}>
+                      <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={14} tintColor={theme.text} />
+                    </Tap>
+                  </View>
+                </Reveal>
+              ))}
+              {uploading ? (
+                <Reveal y={8}>
+                  <View style={[styles.thumb, styles.pdf, { backgroundColor: theme.backgroundElement }]}>
+                    <ActivityIndicator color={theme.accent} />
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {extractionEnabled ? 'Reading…' : 'Uploading…'}
+                    </ThemedText>
+                  </View>
+                </Reveal>
               ) : null}
-            </Card>
-          ) : null}
-
-          <SectionTitle>Details</SectionTitle>
-          <View style={styles.form}>
-            <Field label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Client lunch, Delhi" />
-            <View style={styles.chipsWrap}>
-              <ThemedText type="smallBold" themeColor="textSecondary">
-                Category
-              </ThemedText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chips}>
-                {categories.map((c) => (
-                  <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
-                ))}
-              </ScrollView>
             </View>
-            <Field label="Vendor" value={vendor} onChangeText={setVendor} placeholder="Who you paid" />
-            <FieldGroup>
-              <Field label="Date" value={spentOn} onChangeText={setSpentOn} placeholder="DD/MM/YYYY" error={dateError} keyboardType="numbers-and-punctuation" />
-              <Field label={`Amount (${currency})`} value={amount} onChangeText={setAmount} placeholder="0" keyboardType="decimal-pad" />
-              <Field label="Tax" value={tax} onChangeText={setTax} placeholder="0" keyboardType="decimal-pad" />
-            </FieldGroup>
-            <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Anything your manager should know" multiline />
-          </View>
+            <View style={styles.pickers}>
+              {Platform.OS !== 'web' ? (
+                <Button title="Snap" icon={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }} compact disabled={uploading} onPress={() => addReceipt(snapWithCamera)} />
+              ) : null}
+              <Button title="Photo" variant={Platform.OS === 'web' ? 'primary' : 'secondary'} icon={{ ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' }} compact disabled={uploading} onPress={() => addReceipt(pickFromLibrary)} />
+              <Button title="File / PDF" variant="secondary" icon={{ ios: 'paperclip', android: 'attach_file', web: 'attach_file' }} compact disabled={uploading} onPress={() => addReceipt(pickFile)} />
+            </View>
+            <Presence visible={extraction !== null} y={8}>
+              <Card style={[styles.extractionNote, { backgroundColor: theme.accentSoft }]}>
+                <ThemedText type="small" style={{ color: theme.accent, fontWeight: 600 }}>
+                  Read from the receipt ({extraction?.confidence} confidence). Check every field before submitting.
+                </ThemedText>
+                {extraction?.notes ? (
+                  <ThemedText type="small" style={{ color: theme.accent }}>
+                    {extraction.notes}
+                  </ThemedText>
+                ) : null}
+              </Card>
+            </Presence>
 
-          <SectionTitle trailing={<Chip label="Add line" onPress={() => setLines((prev) => [...prev, newLine()])} />}>Line items</SectionTitle>
-          {lines.length === 0 ? (
-            <ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
-              Optional. Itemise when the receipt lists several things.
-            </ThemedText>
-          ) : null}
-          <View style={styles.form}>
-            {lines.map((line) => (
-              <View key={line.key} style={styles.lineRow}>
-                <View style={styles.lineDesc}>
-                  <Field label="Item" value={line.description} onChangeText={(v) => setLines((prev) => prev.map((l) => (l.key === line.key ? { ...l, description: v } : l)))} placeholder="Description" />
-                </View>
-                <View style={styles.lineQty}>
-                  <Field label="Qty" value={line.quantity} onChangeText={(v) => setLines((prev) => prev.map((l) => (l.key === line.key ? { ...l, quantity: v } : l)))} placeholder="1" keyboardType="decimal-pad" />
-                </View>
-                <View style={styles.lineAmt}>
-                  <Field label="Amount" value={line.amount} onChangeText={(v) => setLines((prev) => prev.map((l) => (l.key === line.key ? { ...l, amount: v } : l)))} placeholder="0" keyboardType="decimal-pad" />
-                </View>
-                <Pressable accessibilityRole="button" accessibilityLabel="Remove line" hitSlop={8} onPress={() => setLines((prev) => prev.filter((l) => l.key !== line.key))} style={styles.lineRemove}>
-                  <SymbolView name={{ ios: 'minus.circle.fill', android: 'remove_circle', web: 'remove_circle' }} size={22} tintColor={theme.danger} />
-                </Pressable>
+            <SectionTitle>Details</SectionTitle>
+            <View style={styles.form}>
+              <Field label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Client lunch, Delhi" flashKey={filled} flashDelay={0} />
+              <View style={styles.chipsWrap}>
+                <ThemedText type="smallBold" themeColor="textSecondary">
+                  Category
+                </ThemedText>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chips}>
+                  {categories.map((c) => (
+                    <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
+                  ))}
+                </ScrollView>
               </View>
-            ))}
-          </View>
+              <Field label="Vendor" value={vendor} onChangeText={setVendor} placeholder="Who you paid" flashKey={filled} flashDelay={80} />
+              <FieldGroup>
+                <Field label="Date" value={spentOn} onChangeText={setSpentOn} placeholder="DD/MM/YYYY" error={dateError} keyboardType="numbers-and-punctuation" flashKey={filled} flashDelay={160} />
+                <Field label={`Amount (${currency})`} value={amount} onChangeText={setAmount} placeholder="0" keyboardType="decimal-pad" flashKey={filled} flashDelay={240} />
+                <Field label="Tax" value={tax} onChangeText={setTax} placeholder="0" keyboardType="decimal-pad" flashKey={filled} flashDelay={320} />
+              </FieldGroup>
+              <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Anything your manager should know" multiline />
+            </View>
 
-          {flags.length > 0 ? (
-            <>
-              <SectionTitle>Policy check</SectionTitle>
-              <FlagList flags={flags} />
-            </>
-          ) : parsedAmount > 0 ? (
-            <ThemedText type="small" style={[styles.hint, { color: theme.success }]}>
-              Within policy.
-            </ThemedText>
-          ) : null}
+            <SectionTitle trailing={<Chip label="Add line" onPress={() => setLines((prev) => [...prev, newLine()])} />}>Line items</SectionTitle>
+            {lines.length === 0 ? (
+              <ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
+                Optional. Itemise when the receipt lists several things.
+              </ThemedText>
+            ) : null}
+            <View style={styles.form}>
+              {lines.map((line, i) => (
+                <Reveal key={line.key} y={8} delay={Math.min(i, 6) * 40}>
+                  <View style={styles.lineRow}>
+                    <View style={styles.lineDesc}>
+                      <Field label="Item" value={line.description} onChangeText={(v) => updateLine(line.key, { description: v })} placeholder="Description" />
+                    </View>
+                    <View style={styles.lineQty}>
+                      <Field label="Qty" value={line.quantity} onChangeText={(v) => updateLine(line.key, { quantity: v })} placeholder="1" keyboardType="decimal-pad" />
+                    </View>
+                    <View style={styles.lineAmt}>
+                      <Field label="Amount" value={line.amount} onChangeText={(v) => updateLine(line.key, { amount: v })} placeholder="0" keyboardType="decimal-pad" />
+                    </View>
+                    <Tap accessibilityRole="button" accessibilityLabel="Remove line" hitSlop={8} scale={0.8} onPress={() => setLines((prev) => prev.filter((l) => l.key !== line.key))} style={styles.lineRemove}>
+                      <SymbolView name={{ ios: 'minus.circle.fill', android: 'remove_circle', web: 'remove_circle' }} size={22} tintColor={theme.danger} />
+                    </Tap>
+                  </View>
+                </Reveal>
+              ))}
+            </View>
 
-          {error ? (
-            <ThemedText type="small" style={[styles.hint, { color: theme.danger }]}>
-              {error}
-            </ThemedText>
-          ) : null}
+            {flags.length > 0 ? (
+              <Reveal y={8}>
+                <SectionTitle>Policy check</SectionTitle>
+                <FlagList flags={flags} />
+              </Reveal>
+            ) : (
+              <Presence visible={parsedAmount > 0} y={4}>
+                <ThemedText type="small" style={[styles.hint, { color: theme.success, fontWeight: 600 }]}>
+                  Within policy.
+                </ThemedText>
+              </Presence>
+            )}
 
-          <View style={styles.actions}>
-            <Button title="Save draft" variant="secondary" loading={saving === 'draft'} disabled={saving !== null || uploading} onPress={() => save(false)} />
-            <Button
-              title={parsedAmount > 0 ? `Submit ${formatMoney(parsedAmount, currency)}` : 'Submit'}
-              loading={saving === 'submit'}
-              disabled={saving !== null || uploading || blocked}
-              icon={{ ios: 'paperplane.fill', android: 'send', web: 'send' }}
-              onPress={() => save(true)}
-            />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Screen>
+            <Presence visible={error !== null} y={6}>
+              <ThemedText type="small" style={[styles.hint, { color: theme.danger }]}>
+                {error}
+              </ThemedText>
+            </Presence>
+
+            <View style={styles.actions}>
+              <Button title="Save draft" variant="secondary" loading={saving === 'draft'} disabled={saving !== null || uploading} onPress={() => save(false)} />
+              <Button
+                title={parsedAmount > 0 ? `Submit ${formatMoney(parsedAmount, currency)}` : 'Submit'}
+                loading={saving === 'submit'}
+                disabled={saving !== null || uploading || blocked}
+                icon={{ ios: 'paperplane.fill', android: 'send', web: 'send' }}
+                onPress={() => save(true)}
+                style={styles.submit}
+              />
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Screen>
+    </Sheet>
   );
 }
 
@@ -323,7 +349,8 @@ const styles = StyleSheet.create({
   receiptRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.two },
   thumb: { width: 96, height: 120, borderRadius: Radius.medium, overflow: 'hidden' },
   pdf: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.one },
-  remove: { position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  removeOuter: { position: 'absolute', top: 6, right: 6 },
+  remove: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   pickers: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.two },
   extractionNote: { marginTop: Spacing.three },
   form: { paddingHorizontal: Spacing.three, gap: Spacing.three, paddingTop: Spacing.two },
@@ -335,6 +362,7 @@ const styles = StyleSheet.create({
   lineDesc: { flex: 3 },
   lineQty: { flex: 1 },
   lineAmt: { flex: 1.4 },
-  lineRemove: { height: 46, justifyContent: 'center' },
+  lineRemove: { height: 48, justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.four },
+  submit: { flex: 1 },
 });

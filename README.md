@@ -15,6 +15,8 @@ Direct payout / payroll sync is deliberately **not** built yet.
 api/     .NET 9 minimal API (Dapper + Npgsql), Dockerfile, dev.sh dev loop, smoke.mjs
 db/      sql/ migrations applied at API start, seed/ dev company + policy
 app/     Expo SDK 58 app (expo-router) for Android, iPhone and web
+         src/motion/ is the motion layer: each piece has a .web.tsx (GSAP + CSS transitions)
+         and a native file (Reanimated); screens import the name and Metro picks the platform
 deploy/  docker-compose (db + api + static web), .env.example, Caddyfile.example
 ```
 

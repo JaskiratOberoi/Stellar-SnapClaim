@@ -5,9 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { Field } from '@/components/field';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { Presence } from '@/motion/presence';
+import { Reveal } from '@/motion/reveal';
+import { SnapMark } from '@/motion/snap-mark';
 import { API_URL, describeError } from '@/services/api';
 
 export default function SignInScreen() {
@@ -37,17 +40,21 @@ export default function SignInScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.root, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.six, paddingBottom: insets.bottom + Spacing.five }]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.six, paddingBottom: insets.bottom + Spacing.five }]}
+        keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
-          <View style={[styles.mark, { backgroundColor: theme.accent }]}>
-            <ThemedText style={[styles.markText, { color: theme.textOnAccent }]}>S</ThemedText>
-          </View>
-          <ThemedText style={styles.brand}>SnapClaim</ThemedText>
-          <ThemedText themeColor="textSecondary" style={styles.tagline}>
-            Snap the bill. Clear the claim.
-          </ThemedText>
+          <SnapMark size={76} />
+          <Reveal delay={240} y={10}>
+            <ThemedText style={styles.brand}>SnapClaim</ThemedText>
+          </Reveal>
+          <Reveal delay={340} y={8}>
+            <ThemedText themeColor="textSecondary" style={styles.tagline}>
+              Snap the bill. Clear the claim.
+            </ThemedText>
+          </Reveal>
 
-          <View style={styles.form}>
+          <Reveal delay={420} y={16} style={styles.form}>
             <Field
               label="Work email"
               value={email}
@@ -68,14 +75,20 @@ export default function SignInScreen() {
               textContentType="password"
               placeholder="••••••••"
               onSubmitEditing={submit}
-              error={error}
             />
+            <Presence visible={error !== null} y={6}>
+              <ThemedText type="small" style={[styles.error, { color: theme.danger, backgroundColor: theme.dangerSoft }]}>
+                {error}
+              </ThemedText>
+            </Presence>
             <Button title="Sign in" onPress={submit} loading={busy} />
-          </View>
+          </Reveal>
 
-          <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
-            Ask your administrator for an account. Connected to {API_URL.replace(/^https?:\/\//, '')}.
-          </ThemedText>
+          <Reveal delay={560} y={0}>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
+              Ask your administrator for an account. Connected to {API_URL.replace(/^https?:\/\//, '')}.
+            </ThemedText>
+          </Reveal>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -85,11 +98,10 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.three },
-  card: { width: '100%', maxWidth: 420, alignItems: 'center', gap: Spacing.two },
-  mark: { width: 64, height: 64, borderRadius: Radius.large, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.two },
-  markText: { fontSize: 34, fontWeight: 800, lineHeight: 40 },
-  brand: { fontSize: 32, lineHeight: 38, fontWeight: 800, letterSpacing: -0.5 },
-  tagline: { marginBottom: Spacing.four },
+  card: { width: '100%', maxWidth: 400, alignItems: 'center', gap: Spacing.two },
+  brand: { fontSize: 34, lineHeight: 40, fontWeight: 800, letterSpacing: -1, marginTop: Spacing.two },
+  tagline: { marginBottom: Spacing.four, fontSize: 16 },
   form: { width: '100%', gap: Spacing.three },
+  error: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: 10, overflow: 'hidden' },
   footer: { textAlign: 'center', marginTop: Spacing.four, lineHeight: 20 },
 });

@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { PageEnter } from '@/motion/page-enter';
+import { Tap } from '@/motion/tap';
 
 type Props = {
   title: string;
@@ -26,14 +28,15 @@ export function Screen({ title, subtitle, action, back, children, style }: Props
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <View style={styles.headerInner}>
           {back ? (
-            <Pressable
+            <Tap
               accessibilityRole="button"
               accessibilityLabel="Back"
               hitSlop={8}
+              scale={0.88}
               onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
               style={({ pressed }) => [styles.back, { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement }]}>
               <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} size={18} tintColor={theme.text} />
-            </Pressable>
+            </Tap>
           ) : null}
           <View style={styles.titles}>
             <ThemedText style={styles.title} numberOfLines={1}>
@@ -48,7 +51,7 @@ export function Screen({ title, subtitle, action, back, children, style }: Props
           {action}
         </View>
       </View>
-      <View style={[styles.content, style]}>{children}</View>
+      <PageEnter style={[styles.content, style]}>{children}</PageEnter>
     </View>
   );
 }
@@ -85,9 +88,9 @@ export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () 
   const theme = useTheme();
   return (
     <View style={[styles.error, { backgroundColor: theme.dangerSoft }]}>
-      <ThemedText style={{ color: theme.danger }}>{message}</ThemedText>
+      <ThemedText style={{ color: theme.danger, flex: 1 }}>{message}</ThemedText>
       {onRetry ? (
-        <Pressable onPress={onRetry} accessibilityRole="button">
+        <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={8}>
           <ThemedText type="smallBold" style={{ color: theme.danger }}>
             Retry
           </ThemedText>
@@ -107,7 +110,8 @@ const styles = StyleSheet.create({
   header: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two + Spacing.half,
+    paddingTop: Spacing.two + Spacing.half,
+    paddingBottom: Spacing.two + Spacing.half,
     alignItems: 'center',
   },
   headerInner: {
@@ -118,9 +122,9 @@ const styles = StyleSheet.create({
     gap: Spacing.two + Spacing.half,
     minHeight: 44,
   },
-  back: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   titles: { flex: 1, gap: Spacing.half },
-  title: { fontSize: 22, lineHeight: 28, fontWeight: 700 },
+  title: { fontSize: 24, lineHeight: 30, fontWeight: 800, letterSpacing: -0.5 },
   content: { flex: 1, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   sectionTitle: {
     flexDirection: 'row',
@@ -129,8 +133,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.one,
+    minHeight: 36,
   },
-  sectionTitleText: { textTransform: 'uppercase', letterSpacing: 0.6, fontSize: 12 },
+  sectionTitleText: { textTransform: 'uppercase', letterSpacing: 0.7, fontSize: 12 },
   empty: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.three, lineHeight: 22 },
   loading: { padding: Spacing.five, alignItems: 'center' },
   error: {

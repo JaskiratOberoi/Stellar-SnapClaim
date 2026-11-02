@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -12,6 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { Tap } from '@/motion/tap';
 import { API_URL, api, describeError } from '@/services/api';
 import { formatNumber } from '@/services/format';
 
@@ -143,7 +144,7 @@ function Row({ icon, title, subtitle, onPress, danger }: { icon: { ios: string; 
   const theme = useTheme();
   const color = danger ? theme.danger : theme.text;
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.backgroundElement : 'transparent' }]}>
+    <Tap accessibilityRole="button" onPress={onPress} scale={0.98} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.backgroundElement : 'transparent' }]}>
       <SymbolView name={icon as never} size={20} tintColor={color} />
       <View style={styles.rowText}>
         <ThemedText style={{ color, fontWeight: 600 }}>{title}</ThemedText>
@@ -154,13 +155,13 @@ function Row({ icon, title, subtitle, onPress, danger }: { icon: { ios: string; 
         ) : null}
       </View>
       <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={16} tintColor={theme.textSecondary} />
-    </Pressable>
+    </Tap>
   );
 }
 
 const styles = StyleSheet.create({
   profile: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, marginTop: Spacing.three },
-  avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   profileText: { flex: 1, gap: Spacing.half },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two + Spacing.half, marginHorizontal: Spacing.two, borderRadius: Radius.medium },
   rowText: { flex: 1, gap: Spacing.half },
