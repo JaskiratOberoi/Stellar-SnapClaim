@@ -135,11 +135,19 @@ export default function ClaimsHome() {
       <ThemedText type="eyebrow" themeColor="textSecondary" style={[styles.listTitle, twoColumn && styles.listTitleWide]}>
         Your claims
       </ThemedText>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filters}>
-        {FILTERS.map((f) => (
-          <Chip key={f.value} label={f.label} selected={filter === f.value} onPress={() => setFilter(f.value)} />
-        ))}
-      </ScrollView>
+      {twoColumn ? (
+        <View style={[styles.filters, styles.filtersWrap]}>
+          {FILTERS.map((f) => (
+            <Chip key={f.value} label={f.label} selected={filter === f.value} onPress={() => setFilter(f.value)} />
+          ))}
+        </View>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filters}>
+          {FILTERS.map((f) => (
+            <Chip key={f.value} label={f.label} selected={filter === f.value} onPress={() => setFilter(f.value)} />
+          ))}
+        </ScrollView>
+      )}
       {list.error ? <ErrorNote message={list.error} onRetry={list.reload} /> : null}
     </View>
   );
@@ -210,7 +218,7 @@ function initials(name: string): string {
 }
 
 const styles = StyleSheet.create({
-  columns: { flex: 1, flexDirection: 'row', gap: Spacing.four, paddingHorizontal: Spacing.three },
+  columns: { flex: 1, flexDirection: 'row', gap: Spacing.four, paddingLeft: Spacing.three, paddingRight: Spacing.four },
   left: { width: 400, flexGrow: 0 },
   leftContent: { paddingBottom: Spacing.five },
   right: { flex: 1 },
@@ -242,5 +250,6 @@ const styles = StyleSheet.create({
   listTitleWide: { paddingTop: Spacing.two },
   filterScroll: { flexGrow: 0 },
   filters: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two + Spacing.half },
+  filtersWrap: { flexWrap: 'wrap' },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

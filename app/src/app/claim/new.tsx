@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -11,7 +11,7 @@ import { Field, FieldGroup } from '@/components/field';
 import { FlagList } from '@/components/flag-list';
 import { Card, Loading, Screen, SectionTitle } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { PhoneWidth, Radius, Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
 import { Presence } from '@/motion/presence';
@@ -31,6 +31,7 @@ const newLine = (description = '', quantity = '', amount = ''): Line => ({ key: 
 export default function NewClaimScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const wide = useWindowDimensions().width >= PhoneWidth;
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { categories, company, extractionEnabled } = useSession();
   const editing = typeof id === 'string' && id.length > 0;
@@ -265,11 +266,19 @@ export default function NewClaimScreen() {
                 <ThemedText type="eyebrow" themeColor="textSecondary">
                   Category
                 </ThemedText>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chips}>
-                  {categories.map((c) => (
-                    <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
-                  ))}
-                </ScrollView>
+                {wide ? (
+                  <View style={[styles.chips, styles.chipsWrapped]}>
+                    {categories.map((c) => (
+                      <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
+                    ))}
+                  </View>
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chips}>
+                    {categories.map((c) => (
+                      <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
+                    ))}
+                  </ScrollView>
+                )}
               </View>
               <Field label="Vendor" value={vendor} onChangeText={setVendor} placeholder="Who you paid" flashKey={filled} flashDelay={80} />
               <FieldGroup>
@@ -357,6 +366,7 @@ const styles = StyleSheet.create({
   chipsWrap: { gap: Spacing.one },
   chipScroll: { flexGrow: 0 },
   chips: { flexDirection: 'row', gap: Spacing.two, paddingVertical: Spacing.one },
+  chipsWrapped: { flexWrap: 'wrap' },
   hint: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, lineHeight: 20 },
   lineRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.two },
   lineDesc: { flex: 3 },
