@@ -1,15 +1,18 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
 import { ClaimRow } from '@/components/claim-row';
 import { Field } from '@/components/field';
-import { EmptyNote, ErrorNote, Loading, Screen } from '@/components/screen';
+import { GroupCard } from '@/components/group-card';
+import { EmptyNote, ErrorNote, Loading, Screen, SectionTitle } from '@/components/screen';
+import { StatCard } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { STATUS_ICON } from '@/constants/status';
+import { PhoneWidth, Radius, SidebarWidth, Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,13 +22,12 @@ import { api, describeError } from '@/services/api';
 import { formatMoney, pluralise } from '@/services/format';
 import type { ApprovalQueue, Claim } from '@/services/types';
 
-import { RailWidth } from './_layout';
-
 export default function ApprovalsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { company, user } = useSession();
+  const wide = width >= PhoneWidth;
+  const { company } = useSession();
   const { data, error, loading, reload } = useRequest(() => api<ApprovalQueue>('/api/v1/approvals/'), []);
   useFocusEffect(
     useCallback(() => {
@@ -39,7 +41,11 @@ export default function ApprovalsScreen() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const items = (data?.items ?? []).filter((c) => !onlyFlagged || c.policy_flags.length > 0);
+  const currency = company?.currency;
+  const money = useCallback((n: number) => formatMoney(Math.round(n), currency), [currency]);
+  const whole = (n: number) => String(Math.round(n));
+  const all = data?.items ?? [];
+  const items = all.filter((c) => !onlyFlagged || c.policy_flags.length > 0);
   const chosen = items.filter((c) => selected.has(c.id));
   const chosenAmount = chosen.reduce((s, c) => s + c.amount, 0);
 
@@ -77,41 +83,66 @@ export default function ApprovalsScreen() {
   };
 
   return (
-    <Screen
-      title="Approvals"
-      subtitle={data ? `${pluralise(data.total, 'claim')} waiting · ${formatMoney(data.total_amount, company?.currency)}` : user?.full_name}>
-      <FlatList
-        data={items}
-        keyExtractor={(c) => c.id}
-        renderItem={({ item, index }) => <ClaimRow claim={item} index={index} showEmployee selected={selected.has(item.id)} onToggleSelect={toggle} />}
-        ListHeaderComponent={
-          <View style={styles.toolbar}>
-            <Chip label={`All (${data?.total ?? 0})`} selected={!onlyFlagged} onPress={() => setOnlyFlagged(false)} />
-            <Chip label={`Flagged (${data?.flagged ?? 0})`} selected={onlyFlagged} onPress={() => setOnlyFlagged(true)} tone="warning" />
-            <View style={styles.spacer} />
-            <Chip
-              label={selected.size === items.length && items.length > 0 ? 'Clear' : 'Select all'}
-              onPress={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((c) => c.id)))}
+    <Screen title="Approvals" subtitle="Submitted claims from your team. Tick what you have checked and decide in one go." scroll bottomSpace={80}>
+      <>
+        <View style={[styles.grid, wide && styles.gridWide]}>
+          <Reveal y={10} style={styles.cell}>
+            <StatCard
+              tone="amber"
+              icon={STATUS_ICON.submitted}
+              label="Waiting for you"
+              trailing={data ? money(data.total_amount) : undefined}
+              value={data?.total ?? 0}
+              format={whole}
+              unit={`/ ${pluralise(data?.total ?? 0, 'claim')}`}
+              fraction={data && data.total ? 1 : 0}
+              note={data?.total ? 'Approve, or reject with a reason the employee will see' : 'Nothing waiting on you'}
             />
-            {error ? <ErrorNote message={error} onRetry={reload} /> : null}
-          </View>
-        }
-        ListEmptyComponent={
-          loading ? (
-            <Loading />
-          ) : (
-            <Reveal y={8}>
-              <EmptyNote>Nothing waiting for you. Submitted claims from your team land here.</EmptyNote>
-            </Reveal>
-          )
-        }
-        contentContainerStyle={{ paddingBottom: insets.bottom + 150 }}
-        keyboardShouldPersistTaps="handled"
-      />
+          </Reveal>
+          <Reveal y={10} delay={60} style={styles.cell}>
+            <StatCard
+              tone="pink"
+              icon={{ ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' }}
+              label="Flagged by policy"
+              trailing={data?.flagged ? 'Worth a closer look' : 'All within policy'}
+              value={data?.flagged ?? 0}
+              format={whole}
+              unit={`/ ${pluralise(data?.total ?? 0, 'claim')}`}
+              fraction={data && data.total ? data.flagged / data.total : 0}
+              note="Over a cap, late, or a possible duplicate"
+              delay={60}
+            />
+          </Reveal>
+        </View>
+
+        <SectionTitle
+          trailing={
+            <View style={styles.chips}>
+              <Chip label="All" selected={!onlyFlagged} onPress={() => setOnlyFlagged(false)} />
+              <Chip label="Flagged" tone="pink" selected={onlyFlagged} onPress={() => setOnlyFlagged(true)} />
+            </View>
+          }>
+          Queue
+        </SectionTitle>
+        {error ? <ErrorNote message={error} onRetry={reload} /> : null}
+        {loading && all.length === 0 ? <Loading /> : null}
+        <GroupCard
+          tone="amber"
+          icon={STATUS_ICON.submitted}
+          kicker={pluralise(items.length, 'claim')}
+          title={onlyFlagged ? 'Flagged' : 'Submitted'}
+          subtitle={items.length ? `${formatMoney(items.reduce((s, c) => s + c.amount, 0), currency)} in total` : undefined}
+          trailing={items.length ? <Chip label={selected.size === items.length ? 'Clear' : 'Select all'} onPress={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((c) => c.id)))} /> : undefined}>
+          {items.length === 0 && !loading ? <EmptyNote>Nothing waiting for you. Submitted claims from your team land here.</EmptyNote> : null}
+          {items.map((c, i) => (
+            <ClaimRow key={c.id} claim={c} index={i} showEmployee showStatus={false} selected={selected.has(c.id)} onToggleSelect={toggle} last={i === items.length - 1} />
+          ))}
+        </GroupCard>
+      </>
       <Presence
         visible={chosen.length > 0 || notice !== null}
         y={24}
-        style={[styles.bar, { backgroundColor: theme.surfaceRaised, shadowColor: theme.shadow, bottom: width >= RailWidth ? Spacing.four : insets.bottom + 96 }]}>
+        style={[styles.bar, { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.shadow, bottom: width >= SidebarWidth ? Spacing.four : insets.bottom + 80 }]}>
         {notice ? (
           <ThemedText type="small" themeColor="textSecondary">
             {notice}
@@ -119,12 +150,12 @@ export default function ApprovalsScreen() {
         ) : null}
         {chosen.length > 0 ? (
           <>
-            {rejecting ? <Field label="Reason for rejection" value={note} onChangeText={setNote} placeholder="Tell the employee what to fix" autoFocus /> : null}
+            {rejecting ? <Field label="Reason for rejection" hint="The employee sees this word for word." value={note} onChangeText={setNote} placeholder="Tell the employee what to fix" autoFocus /> : null}
             <View style={styles.actions}>
-              <ThemedText type="smallBold" style={styles.summary} numberOfLines={2}>
-                {pluralise(chosen.length, 'claim')} · {formatMoney(chosenAmount, company?.currency)}
+              <ThemedText type="smallSemi" style={styles.summary} numberOfLines={2}>
+                {pluralise(chosen.length, 'claim')} · {formatMoney(chosenAmount, currency)}
               </ThemedText>
-              <Button title={rejecting ? 'Confirm reject' : 'Reject'} variant="danger" compact loading={busy && rejecting} disabled={busy} onPress={() => decide('reject')} />
+              <Button title={rejecting ? 'Confirm reject' : 'Reject'} variant="danger" compact loading={busy && rejecting} disabled={busy || (rejecting && !note.trim())} onPress={() => decide('reject')} />
               {rejecting ? (
                 <Button title="Cancel" variant="secondary" compact onPress={() => setRejecting(false)} />
               ) : (
@@ -139,13 +170,16 @@ export default function ApprovalsScreen() {
 }
 
 const styles = StyleSheet.create({
-  toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.three },
-  spacer: { flex: 1 },
+  grid: { gap: Spacing.three, paddingHorizontal: Spacing.three, paddingTop: Spacing.one },
+  gridWide: { flexDirection: 'row' },
+  cell: { flex: 1 },
+  chips: { flexDirection: 'row', gap: Spacing.two },
   bar: {
     position: 'absolute',
     left: Spacing.three,
     right: Spacing.three,
-    borderRadius: Radius.large,
+    borderRadius: Radius.medium,
+    borderWidth: 1,
     padding: Spacing.three,
     gap: Spacing.two,
     shadowOpacity: 0.14,

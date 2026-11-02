@@ -1,18 +1,19 @@
 import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ClaimRow } from '@/components/claim-row';
+import { GroupCard } from '@/components/group-card';
 import { Card, EmptyNote, ErrorNote, Loading, Screen, SectionTitle } from '@/components/screen';
+import { StatCard } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { STATUS_ICON } from '@/constants/status';
+import { Fonts, PhoneWidth, Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
-import { CountUp } from '@/motion/count-up';
 import { GrowBar } from '@/motion/grow-bar';
 import { Presence } from '@/motion/presence';
 import { Reveal } from '@/motion/reveal';
@@ -23,7 +24,7 @@ import type { MonthDetail } from '@/services/types';
 
 export default function ReportsScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const wide = useWindowDimensions().width >= PhoneWidth;
   const { company, can } = useSession();
   const [period, setPeriod] = useState(currentPeriod());
   const { data, error, loading, reload } = useRequest(() => api<MonthDetail>(`/api/v1/months/${period}`), [period]);
@@ -37,6 +38,7 @@ export default function ReportsScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const currency = company?.currency;
   const money = useCallback((n: number) => formatMoney(Math.round(n), currency), [currency]);
+  const whole = (n: number) => String(Math.round(n));
 
   const exportExcel = async () => {
     setBusy('export');
@@ -72,42 +74,32 @@ export default function ReportsScreen() {
 
   const m = data?.month;
   const isCurrent = period >= currentPeriod();
+  const grand = m ? m.pending_amount + m.approved_amount + m.cleared_amount : 0;
   const max = data ? Math.max(...data.by_category.map((x) => x.approved_amount + x.pending_amount), 1) : 1;
 
   return (
-    <Screen title="Month-end review" subtitle={company?.name}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
-        <View style={styles.nav}>
-          <Tap
-            accessibilityRole="button"
-            accessibilityLabel="Previous month"
-            scale={0.88}
-            onPress={() => setPeriod(shiftPeriod(period, -1))}
-            style={({ pressed }) => [styles.navButton, { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement }]}>
-            <SymbolView name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }} size={18} tintColor={theme.text} />
+    <Screen title="Month-end review" subtitle="The month by person and by category. Export the workbook, then close it to clear what was approved." scroll>
+      <>
+        <View style={[styles.nav, { borderColor: theme.border }]}>
+          <Tap accessibilityRole="button" accessibilityLabel="Previous month" scale={0.88} hitSlop={8} onPress={() => setPeriod(shiftPeriod(period, -1))} style={styles.navButton}>
+            <SymbolView name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }} size={18} tintColor={theme.textSecondary} />
           </Tap>
           <View style={styles.navTitle}>
             <Reveal key={period} y={6}>
-              <ThemedText style={styles.month}>{formatMonth(period)}</ThemedText>
+              <ThemedText type="serifSmall">{formatMonth(period)}</ThemedText>
             </Reveal>
             {m?.closed_at ? (
-              <ThemedText type="small" style={{ color: theme.success }}>
+              <ThemedText type="caption" style={{ color: theme.success }}>
                 Closed {formatDateTime(m.closed_at)} by {m.closed_by_name}
               </ThemedText>
             ) : (
-              <ThemedText type="small" themeColor="textSecondary">
+              <ThemedText type="caption" themeColor="textMuted">
                 Not yet closed
               </ThemedText>
             )}
           </View>
-          <Tap
-            accessibilityRole="button"
-            accessibilityLabel="Next month"
-            disabled={isCurrent}
-            scale={0.88}
-            onPress={() => setPeriod(shiftPeriod(period, 1))}
-            style={({ pressed }) => [styles.navButton, { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement, opacity: isCurrent ? 0.4 : 1 }]}>
-            <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={18} tintColor={theme.text} />
+          <Tap accessibilityRole="button" accessibilityLabel="Next month" disabled={isCurrent} scale={0.88} hitSlop={8} onPress={() => setPeriod(shiftPeriod(period, 1))} style={[styles.navButton, { opacity: isCurrent ? 0.3 : 1 }]}>
+            <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={18} tintColor={theme.textSecondary} />
           </Tap>
         </View>
 
@@ -116,11 +108,21 @@ export default function ReportsScreen() {
 
         {m && data ? (
           <>
-            <View style={styles.tiles}>
-              <Tile label="Pending" value={m.pending_amount} format={money} count={m.submitted} tone="warning" delay={0} />
-              <Tile label="Approved" value={m.approved_amount} format={money} count={m.approved} tone="accent" delay={50} />
-              <Tile label="Cleared" value={m.cleared_amount} format={money} count={m.cleared} tone="success" delay={100} />
-              <Tile label="Rejected" value={m.rejected} format={(n) => String(Math.round(n))} count={m.rejected} tone="danger" delay={150} />
+            <View style={[styles.grid, wide && styles.gridWide]}>
+              <Reveal key={`p${period}`} y={10} style={styles.cell}>
+                <StatCard tone="amber" icon={STATUS_ICON.submitted} label="Pending" trailing={pluralise(m.submitted, 'claim')} value={m.pending_amount} format={money} fraction={grand ? m.pending_amount / grand : 0} note="Still with a manager" />
+              </Reveal>
+              <Reveal key={`a${period}`} y={10} delay={50} style={styles.cell}>
+                <StatCard tone="indigo" icon={STATUS_ICON.approved} label="Approved" trailing={pluralise(m.approved, 'claim')} value={m.approved_amount} format={money} fraction={grand ? m.approved_amount / grand : 0} note="Clears when the month closes" delay={50} />
+              </Reveal>
+            </View>
+            <View style={[styles.grid, wide && styles.gridWide, styles.gridGap]}>
+              <Reveal key={`c${period}`} y={10} delay={100} style={styles.cell}>
+                <StatCard tone="green" icon={STATUS_ICON.cleared} label="Cleared" trailing={pluralise(m.cleared, 'claim')} value={m.cleared_amount} format={money} fraction={grand ? m.cleared_amount / grand : 0} note="Ready for payroll" delay={100} />
+              </Reveal>
+              <Reveal key={`r${period}`} y={10} delay={150} style={styles.cell}>
+                <StatCard tone="pink" icon={STATUS_ICON.rejected} label="Rejected" trailing="Sent back" value={m.rejected} format={whole} unit={`/ ${pluralise(m.submitted + m.approved + m.cleared + m.rejected, 'claim')}`} note="With a note from the manager" delay={150} />
+              </Reveal>
             </View>
 
             <View style={styles.actions}>
@@ -148,25 +150,25 @@ export default function ReportsScreen() {
               </ThemedText>
             ) : null}
 
-            <Reveal key={period} y={10} delay={80}>
+            <Reveal key={`t${period}`} y={10} delay={80}>
               <SectionTitle>By employee</SectionTitle>
               {data.by_employee.length === 0 ? (
                 <EmptyNote>No claims this month.</EmptyNote>
               ) : (
                 <Card style={styles.table}>
-                  {data.by_employee.map((e) => (
-                    <View key={e.employee_id} style={[styles.tr, { borderBottomColor: theme.border }]}>
+                  {data.by_employee.map((e, i) => (
+                    <View key={e.employee_id} style={[styles.tr, { borderBottomColor: theme.border, borderBottomWidth: i === data.by_employee.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
                       <View style={styles.tdName}>
-                        <ThemedText numberOfLines={1} style={{ fontWeight: 600 }}>
+                        <ThemedText type="medium" numberOfLines={1}>
                           {e.full_name}
                         </ThemedText>
-                        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                        <ThemedText type="small" themeColor="textMuted" numberOfLines={1}>
                           {[e.employee_code, e.department, e.manager_name ? `→ ${e.manager_name}` : null].filter(Boolean).join(' · ')}
                         </ThemedText>
                       </View>
                       <View style={styles.tdAmount}>
                         <ThemedText style={styles.amount}>{formatMoney(e.approved_amount, currency)}</ThemedText>
-                        <ThemedText type="small" themeColor="textSecondary">
+                        <ThemedText type="caption" themeColor="textMuted">
                           {pluralise(e.claims, 'claim')}
                           {e.pending ? ` · ${e.pending} pending` : ''}
                         </ThemedText>
@@ -184,79 +186,54 @@ export default function ReportsScreen() {
                   {data.by_category.map((k, i) => (
                     <View key={k.category} style={styles.catRow}>
                       <View style={styles.catLine}>
-                        <ThemedText style={styles.catName} numberOfLines={1}>
+                        <ThemedText type="medium" style={styles.catName} numberOfLines={1}>
                           {k.category}
                         </ThemedText>
-                        <ThemedText type="small" themeColor="textSecondary">
+                        <ThemedText type="caption" themeColor="textMuted">
                           {pluralise(k.claims, 'claim')}
                         </ThemedText>
                         <ThemedText style={styles.amount}>{formatMoney(k.approved_amount, currency)}</ThemedText>
                       </View>
-                      <GrowBar fraction={(k.approved_amount + k.pending_amount) / max} color={theme.accent} trackColor={theme.backgroundSelected} delay={120 + i * 50} />
+                      <GrowBar fraction={(k.approved_amount + k.pending_amount) / max} color={theme.accent} trackColor={theme.track} height={10} delay={120 + i * 50} />
                     </View>
                   ))}
                 </Card>
               )}
 
               <SectionTitle>Flagged claims</SectionTitle>
-              {data.flagged.length === 0 ? <EmptyNote>No policy flags this month.</EmptyNote> : data.flagged.map((c, i) => <ClaimRow key={c.id} claim={c} index={i} showEmployee />)}
+              {data.flagged.length === 0 ? (
+                <EmptyNote>No policy flags this month.</EmptyNote>
+              ) : (
+                <GroupCard tone="pink" icon={{ ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' }} kicker={pluralise(data.flagged.length, 'claim')} title="Flagged" subtitle="Over a cap, late, or a possible duplicate">
+                  {data.flagged.map((c, i) => (
+                    <ClaimRow key={c.id} claim={c} index={i} showEmployee last={i === data.flagged.length - 1} />
+                  ))}
+                </GroupCard>
+              )}
             </Reveal>
           </>
         ) : null}
-      </ScrollView>
+      </>
     </Screen>
   );
 }
 
-function Tile({
-  label,
-  value,
-  format,
-  count,
-  tone,
-  delay,
-}: {
-  label: string;
-  value: number;
-  format: (n: number) => string;
-  count: number;
-  tone: 'warning' | 'accent' | 'success' | 'danger';
-  delay: number;
-}) {
-  const theme = useTheme();
-  const color = { warning: theme.warning, accent: theme.accent, success: theme.success, danger: theme.danger }[tone];
-  return (
-    <Reveal delay={delay} y={10} style={styles.tileOuter}>
-      <View style={[styles.tile, { backgroundColor: theme.backgroundElement }]}>
-        <ThemedText type="eyebrow" themeColor="textSecondary" numberOfLines={1}>
-          {label}
-        </ThemedText>
-        <CountUp value={value} format={format} style={[styles.tileValue, { color }]} numberOfLines={1} adjustsFontSizeToFit />
-        <ThemedText type="small" themeColor="textSecondary">
-          {pluralise(count, 'claim')}
-        </ThemedText>
-      </View>
-    </Reveal>
-  );
-}
-
 const styles = StyleSheet.create({
-  nav: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
-  navButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  nav: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, marginHorizontal: Spacing.three, paddingVertical: Spacing.two, borderTopWidth: 1, borderBottomWidth: 1, marginBottom: Spacing.three },
+  navButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   navTitle: { flex: 1, alignItems: 'center', gap: Spacing.half },
-  month: { fontFamily: Fonts.serif, fontSize: 24, lineHeight: 28 },
-  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
-  tileOuter: { flexBasis: '46%', flexGrow: 1 },
-  tile: { borderRadius: Radius.large, paddingHorizontal: Spacing.three + Spacing.one, paddingVertical: Spacing.three + Spacing.one, gap: Spacing.one },
-  tileValue: { fontFamily: Fonts.serif, fontSize: 30, lineHeight: 34, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
+  grid: { gap: Spacing.three, paddingHorizontal: Spacing.three },
+  gridWide: { flexDirection: 'row' },
+  gridGap: { paddingTop: Spacing.three },
+  cell: { flex: 1 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.four },
   notice: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, lineHeight: 20 },
   table: { gap: 0, paddingVertical: Spacing.one },
-  tr: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.two + Spacing.half, borderBottomWidth: StyleSheet.hairlineWidth },
+  tr: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.two + Spacing.half },
   tdName: { flex: 1, gap: Spacing.half },
   tdAmount: { alignItems: 'flex-end', gap: Spacing.half },
-  amount: { fontFamily: Fonts.serif, fontSize: 19, lineHeight: 24, fontVariant: ['tabular-nums'] },
-  catRow: { paddingVertical: Spacing.two, gap: Spacing.one + Spacing.half },
+  amount: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 24, fontVariant: ['tabular-nums'] },
+  catRow: { paddingVertical: Spacing.two, gap: Spacing.two },
   catLine: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  catName: { flex: 1, fontWeight: 600 },
+  catName: { flex: 1 },
 });

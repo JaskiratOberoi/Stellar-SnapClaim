@@ -53,7 +53,7 @@ export function Sheet({ children }: { children: ReactNode }) {
         accessibilityViewIsModal
         style={[
           phone ? styles.phone : styles.dialog,
-          { backgroundColor: theme.background, shadowColor: theme.shadow },
+          { backgroundColor: theme.surface, shadowColor: theme.shadow },
           phone ? { borderTopLeftRadius: Radius.large, borderTopRightRadius: Radius.large } : { borderRadius: Radius.large },
         ]}>
         {children}

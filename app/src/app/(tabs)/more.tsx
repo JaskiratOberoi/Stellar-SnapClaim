@@ -2,8 +2,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Field } from '@/components/field';
@@ -20,7 +19,6 @@ const ROLE_LABEL = { admin: 'Administrator', director: 'Director', manager: 'Man
 
 export default function MoreScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { user, company, policy, extractionEnabled, can, signOut } = useSession();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -48,8 +46,8 @@ export default function MoreScreen() {
   const companyRule = policy.find((r) => r.category_id == null);
 
   return (
-    <Screen title="You" subtitle={company?.name}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
+    <Screen scroll title="Settings" subtitle={company ? `${company.name} · signed in as ${user.full_name}` : undefined}>
+      <>
         <Card style={styles.profile}>
           <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
             <ThemedText type="serif" style={{ color: theme.textOnAccent, fontSize: 24 }}>{initials(user.full_name)}</ThemedText>
@@ -118,7 +116,7 @@ export default function MoreScreen() {
         <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
           SnapClaim {Constants.expoConfig?.version ?? ''} · {API_URL.replace(/^https?:\/\//, '')} · receipt reading {extractionEnabled ? 'on' : 'off'}
         </ThemedText>
-      </ScrollView>
+      </>
     </Screen>
   );
 }

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Field, FieldGroup } from '@/components/field';
@@ -19,7 +18,6 @@ const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(/[^\d.]/g,
 
 export default function PolicyScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { categories, policy, refresh } = useSession();
   const [rows, setRows] = useState<Row[]>(() => {
     const byCat = new Map(policy.map((r) => [r.category_id ?? null, r]));
@@ -60,8 +58,8 @@ export default function PolicyScreen() {
   };
 
   return (
-    <Screen title="Spending policy" subtitle="Blank means no limit; a category overrides the company rule field by field" back>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }} keyboardShouldPersistTaps="handled">
+    <Screen scroll title="Spending policy" subtitle="Blank means no limit; a category overrides the company rule field by field" back>
+      <>
         {rows.map((row, i) => (
           <View key={row.category_id ?? 'company'}>
             <SectionTitle>{row.name}</SectionTitle>
@@ -86,7 +84,7 @@ export default function PolicyScreen() {
         <View style={styles.actions}>
           <Button title="Save policy" loading={busy} onPress={save} />
         </View>
-      </ScrollView>
+      </>
     </Screen>
   );
 }

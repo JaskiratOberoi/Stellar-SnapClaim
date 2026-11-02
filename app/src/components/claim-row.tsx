@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { SymbolView } from 'expo-symbols';
 import { StyleSheet, View } from 'react-native';
 
 import { StatusBadge } from '@/components/status-badge';
 import { ThemedText } from '@/components/themed-text';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { Reveal } from '@/motion/reveal';
 import { Tap } from '@/motion/tap';
@@ -15,45 +15,30 @@ import type { Claim } from '@/services/types';
 type Props = {
   claim: Claim;
   showEmployee?: boolean;
+  /** Inside a group of the same status the badge is noise; hide it. */
+  showStatus?: boolean;
   selected?: boolean;
   onToggleSelect?: (claim: Claim) => void;
-  /** Position in its list: rows arrive one after another, capped at eight steps. */
   index?: number;
+  /** The last row in a card drops its hairline. */
+  last?: boolean;
 };
 
-const ICONS: Record<string, { ios: string; android: string }> = {
-  travel: { ios: 'airplane', android: 'flight' },
-  fuel: { ios: 'fuelpump.fill', android: 'local_gas_station' },
-  meals: { ios: 'fork.knife', android: 'restaurant' },
-  accommodation: { ios: 'bed.double.fill', android: 'hotel' },
-  supplies: { ios: 'shippingbox.fill', android: 'inventory_2' },
-  communication: { ios: 'phone.fill', android: 'call' },
-  software: { ios: 'laptopcomputer', android: 'terminal' },
-  client: { ios: 'person.2.fill', android: 'handshake' },
-  other: { ios: 'doc.text.fill', android: 'receipt_long' },
-};
-
-function categoryIcon(code: string | undefined): SymbolViewProps['name'] {
-  const icon = ICONS[code ?? 'other'] ?? ICONS.other;
-  return { ios: icon.ios, android: icon.android, web: icon.android } as SymbolViewProps['name'];
-}
-
-/** One claim as a card: category mark, title and meta, the amount in serif, its status, a chevron. */
-export function ClaimRow({ claim, showEmployee, selected, onToggleSelect, index = 0 }: Props) {
+/** One claim as a row inside a card: title and meta on the left, the amount in serif on the right, a hairline underneath. */
+export function ClaimRow({ claim, showEmployee, showStatus = true, selected, onToggleSelect, index = 0, last }: Props) {
   const theme = useTheme();
   const flagged = claim.policy_flags.length > 0;
   const meta = [showEmployee ? claim.employee.full_name : null, formatDate(claim.spent_on), claim.category?.name ?? 'Uncategorised', claim.vendor, claim.receipt_count === 0 ? 'No receipt' : null]
     .filter(Boolean)
     .join(' · ');
   return (
-    <Reveal delay={Math.min(index, 8) * 35} y={10}>
+    <Reveal delay={Math.min(index, 8) * 30} y={6}>
       <Tap
         accessibilityRole="button"
         accessibilityLabel={`Claim ${claim.claim_no}, ${claim.title}`}
         onPress={() => router.push({ pathname: '/claim/[id]', params: { id: claim.id } })}
-        scale={0.985}
-        outerStyle={styles.outer}
-        style={({ pressed }) => [styles.card, { backgroundColor: pressed || selected ? theme.backgroundSelected : theme.backgroundElement }]}>
+        scale={0.99}
+        style={({ pressed }) => [styles.row, { backgroundColor: pressed || selected ? theme.backgroundElement : 'transparent', borderBottomColor: theme.border, borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth }]}>
         {onToggleSelect ? (
           <Tap
             accessibilityRole="checkbox"
@@ -61,29 +46,21 @@ export function ClaimRow({ claim, showEmployee, selected, onToggleSelect, index 
             hitSlop={10}
             scale={0.8}
             onPress={() => onToggleSelect(claim)}
-            style={[
-              styles.checkbox,
-              { borderColor: selected ? theme.accent : theme.textSecondary, backgroundColor: selected ? theme.accent : 'transparent' },
-              webTransition('background-color, border-color'),
-            ]}>
-            {selected ? <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} size={14} tintColor={theme.textOnAccent} /> : null}
+            style={[styles.checkbox, { borderColor: selected ? theme.accent : theme.textMuted, backgroundColor: selected ? theme.accent : 'transparent' }, webTransition('background-color, border-color')]}>
+            {selected ? <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} size={14} tintColor="#FFFFFF" /> : null}
           </Tap>
-        ) : (
-          <View style={[styles.mark, { backgroundColor: theme.background }]}>
-            <SymbolView name={categoryIcon(claim.category?.code)} size={18} tintColor={theme.accent} />
-          </View>
-        )}
+        ) : null}
         <View style={styles.main}>
-          <ThemedText style={styles.title} numberOfLines={1}>
+          <ThemedText type="medium" numberOfLines={1}>
             {claim.title}
           </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+          <ThemedText type="small" themeColor="textMuted" numberOfLines={1}>
             {meta}
           </ThemedText>
           {flagged ? (
             <View style={styles.flag}>
               <SymbolView name={{ ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' }} size={13} tintColor={theme.warning} />
-              <ThemedText type="small" style={{ color: theme.warning, fontSize: 12, lineHeight: 16, fontWeight: 600, flexShrink: 1 }} numberOfLines={1}>
+              <ThemedText type="caption" style={{ color: theme.warning, fontWeight: 600, flexShrink: 1 }} numberOfLines={1}>
                 {claim.policy_flags.length === 1 ? claim.policy_flags[0].message : `${claim.policy_flags.length} policy flags`}
               </ThemedText>
             </View>
@@ -93,30 +70,30 @@ export function ClaimRow({ claim, showEmployee, selected, onToggleSelect, index 
           <ThemedText style={styles.amount} numberOfLines={1}>
             {formatMoney(claim.amount, claim.currency)}
           </ThemedText>
-          <StatusBadge status={claim.status} />
+          {showStatus ? (
+            <StatusBadge status={claim.status} />
+          ) : (
+            <ThemedText type="caption" themeColor="textMuted">
+              #{claim.claim_no}
+            </ThemedText>
+          )}
         </View>
-        <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={16} tintColor={theme.textSecondary} />
       </Tap>
     </Reveal>
   );
 }
 
 const styles = StyleSheet.create({
-  outer: { marginHorizontal: Spacing.three, marginBottom: Spacing.two },
-  card: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two + Spacing.half,
+    gap: Spacing.three,
     paddingVertical: Spacing.two + Spacing.half,
-    paddingLeft: Spacing.two + Spacing.half,
-    paddingRight: Spacing.two + Spacing.half,
-    borderRadius: Radius.large,
+    paddingHorizontal: Spacing.three,
   },
-  mark: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  checkbox: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginHorizontal: Spacing.two },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   main: { flex: 1, gap: 2 },
-  title: { fontWeight: 600 },
   flag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one, paddingTop: 2 },
   side: { alignItems: 'flex-end', gap: Spacing.one },
-  amount: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 24, fontVariant: ['tabular-nums'] },
+  amount: { fontFamily: Fonts.serif, fontSize: 22, lineHeight: 26, fontVariant: ['tabular-nums'] },
 });

@@ -1,29 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap');
 
 :root {
   --font-sans:
-    Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-    'Segoe UI Symbol', 'Noto Color Emoji';
+    'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  --accent: #4a3339;
-  --bg: #f8f4ef;
+  --accent: #718b78;
+  --bg: #f6f4ef;
   color-scheme: light;
 }
 
-/* The page is the app's cream before the bundle paints, so there is no white flash. */
+/* The page is the app's ground before the bundle paints, so there is no white flash. */
 html,
 body {
   background: var(--bg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'cv11', 'ss01';
 }
 
 /* Browser surfaces take the palette: selection, caret, scrollbars, keyboard focus. */
 ::selection {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 input,
 textarea {
@@ -32,7 +31,7 @@ textarea {
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 22%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, #242321 18%, transparent) transparent;
 }
 [data-focusvisible-polyfill],
 :focus-visible {

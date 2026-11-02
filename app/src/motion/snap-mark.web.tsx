@@ -39,7 +39,7 @@ export function SnapMark({ size = 72 }: { size?: number }) {
         <ThemedText style={[styles.text, { color: theme.textOnAccent, fontSize: size * 0.62, lineHeight: size * 0.7 }]}>S</ThemedText>
         <View style={[styles.lens, { borderColor: theme.textOnAccent, width: size * 0.2, height: size * 0.2, borderRadius: size * 0.1 }]} />
       </View>
-      <View ref={flash} pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: '#F8F4EF', opacity: 0 }]} />
+      <View ref={flash} pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: '#F6F4EF', opacity: 0 }]} />
     </View>
   );
 }

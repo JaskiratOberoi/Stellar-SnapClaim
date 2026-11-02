@@ -2,7 +2,7 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { ActivityIndicator, StyleSheet, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, Tones, type ToneName } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { Tap } from '@/motion/tap';
 
@@ -10,6 +10,8 @@ type Props = {
   title: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  /** Colour the primary pill after a tinted card it sits in. */
+  tone?: ToneName;
   loading?: boolean;
   disabled?: boolean;
   icon?: SymbolViewProps['name'];
@@ -17,12 +19,14 @@ type Props = {
   compact?: boolean;
 };
 
-/** Pills. The primary one is plum; the rest sit on beige or on nothing. */
-export function Button({ title, onPress, variant = 'primary', loading, disabled, icon, style, compact }: Props) {
+/** Pills, 40 high. Primary is sage (or the card's tone); secondary sits on the surface with a hairline; ghost is text. */
+export function Button({ title, onPress, variant = 'primary', tone, loading, disabled, icon, style, compact }: Props) {
   const theme = useTheme();
-  const bg = { primary: theme.accent, secondary: theme.backgroundElement, danger: theme.danger, ghost: 'transparent' }[variant];
-  const bgPressed = { primary: theme.accentStrong, secondary: theme.backgroundSelected, danger: theme.danger, ghost: theme.backgroundElement }[variant];
-  const fg = { primary: theme.textOnAccent, secondary: theme.text, danger: theme.textOnAccent, ghost: theme.accent }[variant];
+  const base = tone ? Tones[tone].base : theme.accent;
+  const strong = tone ? Tones[tone].ink : theme.accentStrong;
+  const bg = { primary: base, secondary: theme.surface, danger: theme.danger, ghost: 'transparent' }[variant];
+  const bgPressed = { primary: strong, secondary: theme.backgroundElement, danger: theme.danger, ghost: theme.backgroundElement }[variant];
+  const fg = { primary: '#FFFFFF', secondary: theme.text, danger: '#FFFFFF', ghost: tone ? Tones[tone].ink : theme.text }[variant];
   const off = disabled || loading;
   return (
     <Tap
@@ -34,6 +38,7 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
       style={({ pressed }) => [
         styles.button,
         compact && styles.compact,
+        variant === 'secondary' && { borderWidth: 1, borderColor: theme.border },
         { backgroundColor: pressed ? bgPressed : bg, opacity: disabled && !loading ? 0.45 : 1 },
         variant === 'ghost' && { paddingHorizontal: Spacing.two },
         style,
@@ -42,8 +47,8 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
         <ActivityIndicator color={fg} />
       ) : (
         <>
-          {icon ? <SymbolView name={icon} size={compact ? 15 : 17} tintColor={fg} /> : null}
-          <ThemedText type={compact ? 'smallBold' : 'default'} style={{ color: fg, fontWeight: 600 }} numberOfLines={1}>
+          {icon ? <SymbolView name={icon} size={16} tintColor={fg} /> : null}
+          <ThemedText type="smallSemi" style={{ color: fg }} numberOfLines={1}>
             {title}
           </ThemedText>
         </>
@@ -58,9 +63,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.two,
-    paddingHorizontal: Spacing.four,
-    minHeight: 50,
+    paddingHorizontal: Spacing.three + Spacing.one,
+    minHeight: 44,
     borderRadius: Radius.pill,
   },
-  compact: { minHeight: 38, paddingHorizontal: Spacing.three },
+  compact: { minHeight: 36, paddingHorizontal: Spacing.three },
 });

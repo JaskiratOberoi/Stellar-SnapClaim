@@ -1,26 +1,29 @@
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, Tones, type ToneName } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { Tap } from '@/motion/tap';
+import { webTransition } from '@/motion/transition';
 
-type Props = { label: string; selected?: boolean; onPress?: () => void; tone?: 'default' | 'danger' | 'warning' | 'success' };
+type Props = { label: string; selected?: boolean; onPress?: () => void; tone?: ToneName; icon?: SymbolViewProps['name'] };
 
-export function Chip({ label, selected, onPress, tone = 'default' }: Props) {
+/** An outlined pill in its tone: soft fill, base hairline, ink text. Selected, it fills with the base. */
+export function Chip({ label, selected, onPress, tone = 'sage', icon }: Props) {
   const theme = useTheme();
-  const soft = { default: theme.backgroundElement, danger: theme.dangerSoft, warning: theme.warningSoft, success: theme.successSoft }[tone];
-  const strong = { default: theme.accent, danger: theme.danger, warning: theme.warning, success: theme.success }[tone];
-  const textColor = selected ? theme.textOnAccent : tone === 'default' ? theme.text : strong;
+  const t = Tones[tone];
+  const fg = selected ? '#FFFFFF' : t.ink;
   return (
     <Tap
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={{ selected }}
       disabled={!onPress}
       onPress={onPress}
-      scale={0.94}
-      style={({ pressed }) => [styles.chip, { backgroundColor: selected ? strong : pressed ? theme.backgroundSelected : soft }]}>
-      <ThemedText type="small" style={{ color: textColor, fontWeight: 600 }} numberOfLines={1}>
+      scale={0.95}
+      style={({ pressed }) => [styles.chip, { backgroundColor: selected ? t.base : pressed ? theme.backgroundSelected : t.soft, borderColor: t.base }, webTransition('background-color')]}>
+      {icon ? <SymbolView name={icon} size={15} tintColor={fg} /> : null}
+      <ThemedText type="smallSemi" style={{ color: fg }} numberOfLines={1}>
         {label}
       </ThemedText>
     </Tap>
@@ -28,5 +31,5 @@ export function Chip({ label, selected, onPress, tone = 'default' }: Props) {
 }
 
 const styles = StyleSheet.create({
-  chip: { paddingHorizontal: Spacing.three, minHeight: 38, justifyContent: 'center', borderRadius: Radius.pill },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one + Spacing.half, paddingLeft: Spacing.two + Spacing.one, paddingRight: Spacing.three, minHeight: 38, borderRadius: Radius.pill, borderWidth: 1 },
 });

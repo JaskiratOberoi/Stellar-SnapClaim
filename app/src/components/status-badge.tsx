@@ -1,24 +1,17 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { Radius, Spacing, StatusTone, Tones } from '@/constants/theme';
 import { STATUS_LABEL } from '@/services/format';
 import type { ClaimStatus } from '@/services/types';
 
+/** A small pill in the status's tone: soft fill, ink text, a dot in the base. */
 export function StatusBadge({ status }: { status: ClaimStatus }) {
-  const theme = useTheme();
-  const [bg, fg] = {
-    draft: [theme.backgroundSelected, theme.textSecondary],
-    submitted: [theme.warningSoft, theme.warning],
-    approved: [theme.accentSoft, theme.accent],
-    rejected: [theme.dangerSoft, theme.danger],
-    cleared: [theme.successSoft, theme.success],
-  }[status];
+  const t = Tones[StatusTone[status]];
   return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <View style={[styles.dot, { backgroundColor: fg }]} />
-      <ThemedText type="eyebrow" style={{ color: fg, fontSize: 10, letterSpacing: 0.8 }}>
+    <View style={[styles.badge, { backgroundColor: t.soft }]}>
+      <View style={[styles.dot, { backgroundColor: t.base }]} />
+      <ThemedText type="caption" style={{ color: t.ink, fontWeight: 600 }}>
         {STATUS_LABEL[status]}
       </ThemedText>
     </View>
@@ -32,7 +25,7 @@ const styles = StyleSheet.create({
     gap: Spacing.one + Spacing.half,
     paddingLeft: Spacing.two,
     paddingRight: Spacing.two + Spacing.half,
-    paddingVertical: Spacing.one + 1,
+    paddingVertical: Spacing.one,
     borderRadius: Radius.pill,
     alignSelf: 'flex-start',
   },

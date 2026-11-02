@@ -2,23 +2,23 @@ import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Field } from '@/components/field';
 import { FlagList } from '@/components/flag-list';
 import { Card, ErrorNote, Loading, Screen, SectionTitle } from '@/components/screen';
-import { StatusBadge } from '@/components/status-badge';
+import { StatCard } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { STATUS_ICON } from '@/constants/status';
+import { Radius, Spacing, StatusTone } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
 import { Reveal } from '@/motion/reveal';
 import { Tap } from '@/motion/tap';
 import { api, describeError, receiptImageUrl } from '@/services/api';
-import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/services/format';
+import { formatDate, formatDateTime, formatMoney, formatNumber, STATUS_LABEL } from '@/services/format';
 import type { ClaimDetail } from '@/services/types';
 
 const EVENT_LABEL: Record<string, string> = {
@@ -33,7 +33,6 @@ const EVENT_LABEL: Record<string, string> = {
 
 export default function ClaimDetailScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, can } = useSession();
   const { data, error, loading, reload } = useRequest(() => api<ClaimDetail>(`/api/v1/claims/${id}`), [id]);
@@ -76,14 +75,22 @@ export default function ClaimDetailScreen() {
   const canDecide = !mine && can('claims.approve') && claim.status === 'submitted';
 
   return (
-    <Screen title={claim.title} subtitle={`Claim #${claim.claim_no}${mine ? '' : ` · ${claim.employee.full_name}`}`} back>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }} keyboardShouldPersistTaps="handled">
+    <Screen title={claim.title} subtitle={`Claim #${claim.claim_no}${mine ? '' : ` · ${claim.employee.full_name}`}`} back scroll>
+      <>
         <Reveal y={10}>
-        <Card style={styles.hero}>
-          <View style={styles.heroTop}>
-            <ThemedText type="displayLarge" style={styles.amount}>{formatMoney(claim.amount, claim.currency)}</ThemedText>
-            <StatusBadge status={claim.status} />
-          </View>
+        <View style={styles.hero}>
+          <StatCard
+            tone={StatusTone[claim.status]}
+            icon={STATUS_ICON[claim.status]}
+            label={STATUS_LABEL[claim.status]}
+            trailing={`Claim #${claim.claim_no}`}
+            value={claim.amount}
+            format={(n) => formatMoney(Math.round(n), claim.currency)}
+            unit={formatDate(claim.spent_on)}
+            note={[claim.category?.name ?? 'Uncategorised', claim.vendor].filter(Boolean).join(' · ')}
+          />
+        </View>
+        <Card style={styles.facts}>
           <Meta label="Date" value={formatDate(claim.spent_on)} />
           <Meta label="Category" value={claim.category?.name ?? 'Uncategorised'} />
           {claim.vendor ? <Meta label="Vendor" value={claim.vendor} /> : null}
@@ -218,7 +225,7 @@ export default function ClaimDetailScreen() {
           ))}
         </View>
         {loading ? <Loading /> : null}
-      </ScrollView>
+      </>
     </Screen>
   );
 }
@@ -226,7 +233,7 @@ export default function ClaimDetailScreen() {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.meta}>
-      <ThemedText type="eyebrow" themeColor="textSecondary" style={styles.metaLabel}>
+      <ThemedText type="label" themeColor="textSecondary" style={styles.metaLabel}>
         {label}
       </ThemedText>
       <ThemedText type="small" style={styles.metaValue}>
@@ -238,9 +245,8 @@ function Meta({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  hero: { marginTop: Spacing.three },
-  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.two },
-  amount: { fontVariant: ['tabular-nums'] },
+  hero: { marginTop: Spacing.two, marginHorizontal: Spacing.three },
+  facts: { marginTop: Spacing.three },
   meta: { flexDirection: 'row', gap: Spacing.two },
   metaLabel: { width: 110, paddingTop: 2 },
   metaValue: { flex: 1 },

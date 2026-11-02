@@ -18,13 +18,14 @@ type Props = TextInputProps & {
   flashDelay?: number;
 };
 
+/** A sunken field with a muted label, like the settings inputs in the reference; the border appears on focus. */
 export function Field({ label, hint, error, trailing, prefix, style, flashKey, flashDelay, onFocus, onBlur, ...rest }: Props) {
   const theme = useTheme();
   const [focused, setFocused] = useState(false);
   const border = error ? theme.danger : focused ? theme.accent : 'transparent';
   return (
     <View style={styles.wrap}>
-      <ThemedText type="eyebrow" themeColor="textSecondary">
+      <ThemedText type="label" themeColor="textMuted">
         {label}
       </ThemedText>
       <FlashView
@@ -34,12 +35,12 @@ export function Field({ label, hint, error, trailing, prefix, style, flashKey, f
         flashKey={flashKey}
         delay={flashDelay}>
         {prefix ? (
-          <ThemedText themeColor="textSecondary" style={styles.prefix}>
+          <ThemedText themeColor="textMuted" style={styles.prefix}>
             {prefix}
           </ThemedText>
         ) : null}
         <TextInput
-          placeholderTextColor={theme.textSecondary}
+          placeholderTextColor={theme.textMuted}
           selectionColor={theme.accent}
           style={[styles.input, { color: theme.text }, style]}
           onFocus={(e) => {
@@ -59,7 +60,7 @@ export function Field({ label, hint, error, trailing, prefix, style, flashKey, f
           {error}
         </ThemedText>
       ) : hint ? (
-        <ThemedText type="small" themeColor="textSecondary">
+        <ThemedText type="small" themeColor="textMuted">
           {hint}
         </ThemedText>
       ) : null}
@@ -76,10 +77,10 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: Radius.medium,
-    borderWidth: 1.5,
-    paddingHorizontal: Spacing.three + Spacing.half,
-    minHeight: 50,
+    borderRadius: Radius.small,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.three - 1,
+    minHeight: 46,
   },
   prefix: { marginRight: Spacing.one },
   input: { flex: 1, fontSize: 16, paddingVertical: Spacing.two, outlineWidth: 0 },

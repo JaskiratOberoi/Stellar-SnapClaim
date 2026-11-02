@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
@@ -28,7 +27,6 @@ const blank: Form = { email: '', full_name: '', role: 'employee', manager_id: nu
 
 export default function UsersScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { user: me } = useSession();
   const { data, error, loading, reload } = useRequest(() => api<{ items: User[] }>('/api/v1/users?include_inactive=true'), []);
   const [editing, setEditing] = useState<User | 'new' | null>(null);
@@ -69,8 +67,8 @@ export default function UsersScreen() {
   };
 
   return (
-    <Screen title="People" subtitle={`${users.filter((u) => u.is_active).length} active`} back action={<Chip label="Add person" onPress={() => open('new')} />}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }} keyboardShouldPersistTaps="handled">
+    <Screen scroll title="People" subtitle={`${users.filter((u) => u.is_active).length} active`} back action={<Chip label="Add person" onPress={() => open('new')} />}>
+      <>
         {error ? <ErrorNote message={error} onRetry={reload} /> : null}
         <Presence visible={editing !== null} y={10}>
         {editing ? (
@@ -83,7 +81,7 @@ export default function UsersScreen() {
                 <Field label="Employee code" value={form.employee_code} onChangeText={(v) => setForm({ ...form, employee_code: v })} placeholder="EMP01" />
                 <Field label="Department" value={form.department} onChangeText={(v) => setForm({ ...form, department: v })} placeholder="Sales" />
               </FieldGroup>
-              <ThemedText type="eyebrow" themeColor="textSecondary">
+              <ThemedText type="label" themeColor="textSecondary">
                 Role
               </ThemedText>
               <View style={styles.chips}>
@@ -91,7 +89,7 @@ export default function UsersScreen() {
                   <Chip key={r.value} label={r.label} selected={form.role === r.value} onPress={() => setForm({ ...form, role: r.value })} />
                 ))}
               </View>
-              <ThemedText type="eyebrow" themeColor="textSecondary">
+              <ThemedText type="label" themeColor="textSecondary">
                 Approves their claims
               </ThemedText>
               <View style={styles.chips}>
@@ -149,7 +147,7 @@ export default function UsersScreen() {
             </View>
           </Tap>
         ))}
-      </ScrollView>
+      </>
     </Screen>
   );
 }

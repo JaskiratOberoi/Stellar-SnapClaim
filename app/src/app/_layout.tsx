@@ -1,4 +1,4 @@
-import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic, useFonts } from '@expo-google-fonts/instrument-serif';
+import { Fraunces_400Regular, Fraunces_400Regular_Italic, useFonts } from '@expo-google-fonts/fraunces';
 import { DefaultTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -15,7 +15,7 @@ const theme: Theme = {
 };
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic });
+  const [fontsLoaded] = useFonts({ Fraunces_400Regular, Fraunces_400Regular_Italic });
   return (
     <ThemeProvider value={theme}>
       <SessionProvider>

@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
@@ -30,7 +29,6 @@ const newLine = (description = '', quantity = '', amount = ''): Line => ({ key: 
 
 export default function NewClaimScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const wide = useWindowDimensions().width >= PhoneWidth;
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { categories, company, extractionEnabled } = useSession();
@@ -193,9 +191,9 @@ export default function NewClaimScreen() {
 
   return (
     <Sheet>
-      <Screen title={editing ? 'Edit claim' : 'New claim'} subtitle={extractionEnabled ? 'Snap the bill, check the details, submit' : 'Attach the bill and fill in the details'} back>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-          <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+        <Screen title={editing ? 'Edit claim' : 'New claim'} subtitle={extractionEnabled ? 'Snap the bill, check the details, submit' : 'Attach the bill and fill in the details'} back scroll>
+          <>
             {loadingExisting ? <Loading /> : null}
 
             <SectionTitle>Receipt</SectionTitle>
@@ -263,7 +261,7 @@ export default function NewClaimScreen() {
             <View style={styles.form}>
               <Field label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Client lunch, Delhi" flashKey={filled} flashDelay={0} />
               <View style={styles.chipsWrap}>
-                <ThemedText type="eyebrow" themeColor="textSecondary">
+                <ThemedText type="label" themeColor="textSecondary">
                   Category
                 </ThemedText>
                 {wide ? (
@@ -346,9 +344,9 @@ export default function NewClaimScreen() {
                 style={styles.submit}
               />
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Screen>
+          </>
+        </Screen>
+      </KeyboardAvoidingView>
     </Sheet>
   );
 }
