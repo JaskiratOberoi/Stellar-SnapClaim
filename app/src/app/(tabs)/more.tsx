@@ -1,30 +1,31 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
-import { Field } from '@/components/field';
-import { Card, Screen, SectionTitle } from '@/components/screen';
+import { Field, FieldGroup } from '@/components/field';
+import { Screen } from '@/components/screen';
+import { Fact, SettingsSection } from '@/components/settings-section';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { Presence } from '@/motion/presence';
 import { Tap } from '@/motion/tap';
 import { API_URL, api, describeError } from '@/services/api';
 import { formatNumber } from '@/services/format';
 
 const ROLE_LABEL = { admin: 'Administrator', director: 'Director', manager: 'Manager', employee: 'Employee' } as const;
 
-export default function MoreScreen() {
+export default function SettingsScreen() {
   const theme = useTheme();
   const { user, company, policy, extractionEnabled, can, signOut } = useSession();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [pwBusy, setPwBusy] = useState(false);
   const [pwNotice, setPwNotice] = useState<string | null>(null);
-  const [showPw, setShowPw] = useState(false);
 
   const changePassword = async () => {
     setPwBusy(true);
@@ -34,7 +35,6 @@ export default function MoreScreen() {
       setPwNotice('Password changed.');
       setCurrent('');
       setNext('');
-      setShowPw(false);
     } catch (err) {
       setPwNotice(describeError(err));
     } finally {
@@ -46,74 +46,60 @@ export default function MoreScreen() {
   const companyRule = policy.find((r) => r.category_id == null);
 
   return (
-    <Screen scroll title="Settings" subtitle={company ? `${company.name} · signed in as ${user.full_name}` : undefined}>
+    <Screen scroll title="Settings" subtitle="Your account, and for administrators the company setup.">
       <>
-        <Card style={styles.profile}>
-          <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
-            <ThemedText type="serif" style={{ color: theme.textOnAccent, fontSize: 24 }}>{initials(user.full_name)}</ThemedText>
+        <SettingsSection first title="You" description="Your name, your role, and where your claims go.">
+          <View>
+            <Fact label="Name" value={user.full_name} />
+            <Fact label="Role" value={ROLE_LABEL[user.role]} />
+            {user.employee_code ? <Fact label="Employee code" value={user.employee_code} /> : null}
+            {user.department ? <Fact label="Department" value={user.department} /> : null}
+            <Fact label="Email" value={user.email} />
+            <Fact label="Approver" value={user.manager_name ?? 'Nobody yet'} />
+            <Fact label="Company" value={company ? `${company.name} · ${company.currency}` : ''} />
           </View>
-          <View style={styles.profileText}>
-            <ThemedText type="serif">{user.full_name}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {[ROLE_LABEL[user.role], user.employee_code, user.department].filter(Boolean).join(' · ')}
-            </ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {user.email}
-            </ThemedText>
-            {user.manager_name ? (
-              <ThemedText type="small" themeColor="textSecondary">
-                Claims go to {user.manager_name}
+        </SettingsSection>
+
+        {can('users') || can('policy') ? (
+          <SettingsSection title="Administration" description="People, reporting lines and the spending policy.">
+            <LinkCard icon={{ ios: 'person.2.fill', android: 'group', web: 'group' }} title="People & reporting lines" subtitle="Add employees, set managers and roles" onPress={() => router.push('/admin/users')} />
+            <LinkCard icon={{ ios: 'shield.lefthalf.filled', android: 'policy', web: 'policy' }} title="Spending policy" subtitle="Caps, receipt thresholds, submission window" onPress={() => router.push('/admin/policy')} />
+          </SettingsSection>
+        ) : null}
+
+        <SettingsSection title="Spending policy" description="What the policy check holds every claim to. A category rule overrides the company rule field by field.">
+          <View>
+            {companyRule ? <Fact label="Company-wide" value={describeRule(companyRule.max_per_claim, companyRule.max_per_month, companyRule.receipt_required_above, companyRule.max_days_to_submit)} /> : null}
+            {policy
+              .filter((r) => r.category_id != null)
+              .map((r) => (
+                <Fact key={r.category_id} label={r.category_name ?? 'Category'} value={describeRule(r.max_per_claim, r.max_per_month, r.receipt_required_above, r.max_days_to_submit)} />
+              ))}
+            {policy.length === 0 ? (
+              <ThemedText type="small" themeColor="textMuted">
+                No policy configured.
               </ThemedText>
             ) : null}
           </View>
-        </Card>
+        </SettingsSection>
 
-        {can('users') || can('policy') ? (
-          <>
-            <SectionTitle>Administration</SectionTitle>
-            <Row icon={{ ios: 'person.2.fill', android: 'group', web: 'group' }} title="People & reporting lines" subtitle="Add employees, set managers and roles" onPress={() => router.push('/admin/users')} />
-            <Row icon={{ ios: 'shield.lefthalf.filled', android: 'policy', web: 'policy' }} title="Spending policy" subtitle="Caps, receipt thresholds, submission window" onPress={() => router.push('/admin/policy')} />
-          </>
-        ) : null}
-
-        <SectionTitle>Spending policy</SectionTitle>
-        <Card>
-          {companyRule ? (
-            <ThemedText type="small" themeColor="textSecondary" style={styles.policyLine}>
-              Company-wide: {describeRule(companyRule.max_per_claim, companyRule.max_per_month, companyRule.receipt_required_above, companyRule.max_days_to_submit)}
+        <SettingsSection title="Account" description="Change your password, or sign out of this device.">
+          <FieldGroup>
+            <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="current-password" />
+            <Field label="New password" value={next} onChangeText={setNext} secureTextEntry autoComplete="new-password" hint="At least 8 characters" />
+          </FieldGroup>
+          <Presence visible={pwNotice !== null} y={6}>
+            <ThemedText type="small" style={{ color: pwNotice === 'Password changed.' ? theme.success : theme.danger }}>
+              {pwNotice}
             </ThemedText>
-          ) : null}
-          {policy
-            .filter((r) => r.category_id != null)
-            .map((r) => (
-              <ThemedText key={r.category_id} type="small" themeColor="textSecondary" style={styles.policyLine}>
-                {r.category_name}: {describeRule(r.max_per_claim, r.max_per_month, r.receipt_required_above, r.max_days_to_submit)}
-              </ThemedText>
-            ))}
-          {policy.length === 0 ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              No policy configured.
-            </ThemedText>
-          ) : null}
-        </Card>
+          </Presence>
+          <View style={styles.actions}>
+            <Button title="Update password" compact onPress={changePassword} loading={pwBusy} disabled={next.length < 8 || !current} />
+            <Button title="Sign out" variant="secondary" compact icon={{ ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' }} onPress={signOut} />
+          </View>
+        </SettingsSection>
 
-        <SectionTitle>Account</SectionTitle>
-        <Row icon={{ ios: 'key.fill', android: 'key', web: 'key' }} title="Change password" onPress={() => setShowPw((v) => !v)} />
-        {showPw ? (
-          <Card>
-            <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry />
-            <Field label="New password" value={next} onChangeText={setNext} secureTextEntry hint="At least 8 characters" />
-            <Button title="Update password" onPress={changePassword} loading={pwBusy} disabled={next.length < 8 || !current} />
-          </Card>
-        ) : null}
-        {pwNotice ? (
-          <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
-            {pwNotice}
-          </ThemedText>
-        ) : null}
-        <Row icon={{ ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' }} title="Sign out" onPress={signOut} danger />
-
-        <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
+        <ThemedText type="caption" themeColor="textMuted" style={styles.footer}>
           SnapClaim {Constants.expoConfig?.version ?? ''} · {API_URL.replace(/^https?:\/\//, '')} · receipt reading {extractionEnabled ? 'on' : 'off'}
         </ThemedText>
       </>
@@ -130,40 +116,29 @@ function describeRule(perClaim: number | null, perMonth: number | null, receiptA
   return parts.join(', ');
 }
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join('');
-}
-
-function Row({ icon, title, subtitle, onPress, danger }: { icon: { ios: string; android: string; web: string }; title: string; subtitle?: string; onPress: () => void; danger?: boolean }) {
+/** A surface card that is a link: icon badge, title, line, chevron. */
+function LinkCard({ icon, title, subtitle, onPress }: { icon: SymbolViewProps['name']; title: string; subtitle: string; onPress: () => void }) {
   const theme = useTheme();
-  const color = danger ? theme.danger : theme.text;
   return (
-    <Tap accessibilityRole="button" onPress={onPress} scale={0.98} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.backgroundElement : 'transparent' }]}>
-      <SymbolView name={icon as never} size={20} tintColor={color} />
-      <View style={styles.rowText}>
-        <ThemedText style={{ color, fontWeight: 600 }}>{title}</ThemedText>
-        {subtitle ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            {subtitle}
-          </ThemedText>
-        ) : null}
+    <Tap accessibilityRole="button" onPress={onPress} scale={0.985} style={({ pressed }) => [styles.link, { backgroundColor: pressed ? theme.backgroundElement : theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.linkBadge, { backgroundColor: theme.accent }]}>
+        <SymbolView name={icon} size={18} tintColor="#FFFFFF" />
       </View>
-      <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={16} tintColor={theme.textSecondary} />
+      <View style={styles.linkText}>
+        <ThemedText type="medium">{title}</ThemedText>
+        <ThemedText type="small" themeColor="textMuted">
+          {subtitle}
+        </ThemedText>
+      </View>
+      <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={16} tintColor={theme.textMuted} />
     </Tap>
   );
 }
 
 const styles = StyleSheet.create({
-  profile: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, marginTop: Spacing.three },
-  avatar: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  profileText: { flex: 1, gap: Spacing.half },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two + Spacing.half, marginHorizontal: Spacing.two, borderRadius: Radius.medium },
-  rowText: { flex: 1, gap: Spacing.half },
-  policyLine: { lineHeight: 20 },
-  note: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two },
-  footer: { textAlign: 'center', paddingTop: Spacing.five, paddingHorizontal: Spacing.three },
+  link: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, padding: Spacing.three, borderRadius: Radius.medium, borderWidth: 1 },
+  linkBadge: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  linkText: { flex: 1, gap: 2 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  footer: { textAlign: 'center', paddingVertical: Spacing.five, paddingHorizontal: Spacing.three },
 });

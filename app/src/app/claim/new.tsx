@@ -10,7 +10,8 @@ import { Field, FieldGroup } from '@/components/field';
 import { FlagList } from '@/components/flag-list';
 import { Card, Loading, Screen, SectionTitle } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { PhoneWidth, Radius, Spacing } from '@/constants/theme';
+import { categoryIcon } from '@/constants/status';
+import { CategoryTone, PhoneWidth, Radius, Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
 import { Presence } from '@/motion/presence';
@@ -245,12 +246,12 @@ export default function NewClaimScreen() {
               <Button title="File / PDF" variant="secondary" icon={{ ios: 'paperclip', android: 'attach_file', web: 'attach_file' }} compact disabled={uploading} onPress={() => addReceipt(pickFile)} />
             </View>
             <Presence visible={extraction !== null} y={8}>
-              <Card style={[styles.extractionNote, { backgroundColor: theme.accentSoft }]}>
-                <ThemedText type="small" style={{ color: theme.accent, fontWeight: 600 }}>
+              <Card style={[styles.extractionNote, { backgroundColor: theme.accentSoft, borderColor: theme.accentSoft }]}>
+                <ThemedText type="smallSemi" style={{ color: theme.accentStrong }}>
                   Read from the receipt ({extraction?.confidence} confidence). Check every field before submitting.
                 </ThemedText>
                 {extraction?.notes ? (
-                  <ThemedText type="small" style={{ color: theme.accent }}>
+                  <ThemedText type="small" style={{ color: theme.accentStrong }}>
                     {extraction.notes}
                   </ThemedText>
                 ) : null}
@@ -267,13 +268,13 @@ export default function NewClaimScreen() {
                 {wide ? (
                   <View style={[styles.chips, styles.chipsWrapped]}>
                     {categories.map((c) => (
-                      <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
+                      <Chip key={c.id} label={c.name} tone={CategoryTone[c.code] ?? 'sage'} icon={categoryIcon(c.code)} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
                     ))}
                   </View>
                 ) : (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chips}>
                     {categories.map((c) => (
-                      <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
+                      <Chip key={c.id} label={c.name} tone={CategoryTone[c.code] ?? 'sage'} icon={categoryIcon(c.code)} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
                     ))}
                   </ScrollView>
                 )}

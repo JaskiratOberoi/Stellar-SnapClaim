@@ -49,7 +49,7 @@ export default function SignInScreen() {
             <ThemedText type="displayLarge" style={styles.brand}>SnapClaim</ThemedText>
           </Reveal>
           <Reveal delay={340} y={8}>
-            <ThemedText type="serifItalic" themeColor="textSecondary" style={styles.tagline}>
+            <ThemedText type="serifItalic" themeColor="textMuted" style={styles.tagline}>
               Snap the bill. Clear the claim.
             </ThemedText>
           </Reveal>
@@ -85,7 +85,7 @@ export default function SignInScreen() {
           </Reveal>
 
           <Reveal delay={560} y={0}>
-            <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
+            <ThemedText type="small" themeColor="textMuted" style={styles.footer}>
               Ask your administrator for an account. Connected to {API_URL.replace(/^https?:\/\//, '')}.
             </ThemedText>
           </Reveal>

@@ -3,11 +3,13 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Field, FieldGroup } from '@/components/field';
-import { Card, Screen, SectionTitle } from '@/components/screen';
+import { Screen } from '@/components/screen';
+import { SettingsSection } from '@/components/settings-section';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { Presence } from '@/motion/presence';
 import { api, describeError } from '@/services/api';
 import type { PolicyRule } from '@/services/types';
 
@@ -21,11 +23,7 @@ export default function PolicyScreen() {
   const { categories, policy, refresh } = useSession();
   const [rows, setRows] = useState<Row[]>(() => {
     const byCat = new Map(policy.map((r) => [r.category_id ?? null, r]));
-    const company = byCat.get(null);
-    return [
-      toRow(null, 'Company-wide (every category)', company),
-      ...categories.map((c) => toRow(c.id, c.name, byCat.get(c.id))),
-    ];
+    return [toRow(null, 'Company-wide', byCat.get(null)), ...categories.map((c) => toRow(c.id, c.name, byCat.get(c.id)))];
   });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -58,30 +56,31 @@ export default function PolicyScreen() {
   };
 
   return (
-    <Screen scroll title="Spending policy" subtitle="Blank means no limit; a category overrides the company rule field by field" back>
+    <Screen scroll title="Spending policy" subtitle="Blank means no limit. A category overrides the company rule field by field, and the check runs as people type." back>
       <>
         {rows.map((row, i) => (
-          <View key={row.category_id ?? 'company'}>
-            <SectionTitle>{row.name}</SectionTitle>
-            <Card>
-              <FieldGroup>
-                <Field label="Max per claim" value={row.max_per_claim} onChangeText={(v) => update(i, { max_per_claim: v })} keyboardType="decimal-pad" placeholder="—" />
-                <Field label="Max per month" value={row.max_per_month} onChangeText={(v) => update(i, { max_per_month: v })} keyboardType="decimal-pad" placeholder="—" />
-              </FieldGroup>
-              <FieldGroup>
-                <Field label="Receipt required above" value={row.receipt_required_above} onChangeText={(v) => update(i, { receipt_required_above: v })} keyboardType="decimal-pad" placeholder="0" />
-                <Field label="Submit within (days)" value={row.max_days_to_submit} onChangeText={(v) => update(i, { max_days_to_submit: v })} keyboardType="number-pad" placeholder="—" />
-              </FieldGroup>
-              <Field label="Note shown to employees" value={row.notes} onChangeText={(v) => update(i, { notes: v })} placeholder="e.g. Economy class only" />
-            </Card>
-          </View>
+          <SettingsSection
+            key={row.category_id ?? 'company'}
+            first={i === 0}
+            title={row.name}
+            description={i === 0 ? 'Applies to every claim unless its category says otherwise.' : 'Leave a field blank to fall back to the company rule.'}>
+            <FieldGroup>
+              <Field label="Max per claim" value={row.max_per_claim} onChangeText={(v) => update(i, { max_per_claim: v })} keyboardType="decimal-pad" placeholder="No limit" />
+              <Field label="Max per month" value={row.max_per_month} onChangeText={(v) => update(i, { max_per_month: v })} keyboardType="decimal-pad" placeholder="No limit" />
+            </FieldGroup>
+            <FieldGroup>
+              <Field label="Receipt required above" value={row.receipt_required_above} onChangeText={(v) => update(i, { receipt_required_above: v })} keyboardType="decimal-pad" placeholder="0" />
+              <Field label="Submit within (days)" value={row.max_days_to_submit} onChangeText={(v) => update(i, { max_days_to_submit: v })} keyboardType="number-pad" placeholder="No limit" />
+            </FieldGroup>
+            <Field label="Note shown to employees" value={row.notes} onChangeText={(v) => update(i, { notes: v })} placeholder="e.g. Economy class only" />
+          </SettingsSection>
         ))}
-        {notice ? (
-          <ThemedText type="small" style={[styles.notice, { color: notice.startsWith('Policy saved') ? theme.success : theme.danger }]}>
-            {notice}
-          </ThemedText>
-        ) : null}
-        <View style={styles.actions}>
+        <View style={[styles.save, { borderTopColor: theme.border }]}>
+          <Presence visible={notice !== null} y={6}>
+            <ThemedText type="small" style={{ color: notice?.startsWith('Policy saved') ? theme.success : theme.danger }}>
+              {notice}
+            </ThemedText>
+          </Presence>
           <Button title="Save policy" loading={busy} onPress={save} />
         </View>
       </>
@@ -102,6 +101,5 @@ function toRow(categoryId: string | null, name: string, rule?: PolicyRule): Row 
 }
 
 const styles = StyleSheet.create({
-  notice: { paddingHorizontal: Spacing.three, paddingTop: Spacing.three, lineHeight: 20 },
-  actions: { paddingHorizontal: Spacing.three, paddingTop: Spacing.four },
+  save: { marginHorizontal: Spacing.three, paddingTop: Spacing.four, borderTopWidth: 1, gap: Spacing.three, alignItems: 'flex-start' },
 });
