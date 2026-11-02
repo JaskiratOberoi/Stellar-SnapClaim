@@ -31,3 +31,7 @@ app/expo-env.d.ts
 Thumbs.db
 *.log
 .claude/
+
+# Android builds published to the site (fetched by deploy/release-android.sh)
+deploy/downloads/*
+!deploy/downloads/.gitkeep

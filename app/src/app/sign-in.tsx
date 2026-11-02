@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Field } from '@/components/field';
+import { GetAppCard } from '@/components/get-app-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
@@ -84,7 +85,10 @@ export default function SignInScreen() {
             <Button title="Sign in" onPress={submit} loading={busy} />
           </Reveal>
 
-          <Reveal delay={560} y={0}>
+          <Reveal delay={560} y={0} style={styles.getApp}>
+            <GetAppCard />
+          </Reveal>
+          <Reveal delay={620} y={0}>
             <ThemedText type="small" themeColor="textMuted" style={styles.footer}>
               Ask your administrator for an account. Connected to {API_URL.replace(/^https?:\/\//, '')}.
             </ThemedText>
@@ -104,4 +108,5 @@ const styles = StyleSheet.create({
   form: { width: '100%', gap: Spacing.three },
   error: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: 14, overflow: 'hidden' },
   footer: { textAlign: 'center', marginTop: Spacing.four, lineHeight: 20 },
+  getApp: { width: '100%', marginHorizontal: -Spacing.three, marginTop: Spacing.two },
 });
