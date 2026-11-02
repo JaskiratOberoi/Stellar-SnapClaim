@@ -45,6 +45,7 @@ function Navigation({ fontsLoaded }: { fontsLoaded: boolean }) {
         <Stack.Screen name="receipt/[id]" options={sheet} />
         <Stack.Screen name="admin/users" />
         <Stack.Screen name="admin/policy" />
+        <Stack.Screen name="admin/audit" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" options={{ animation: 'fade', animationTypeForReplace: 'pop' }} />

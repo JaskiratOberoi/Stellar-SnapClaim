@@ -26,10 +26,10 @@ deploy/  docker-compose (db + api + static web), .env.example, Caddyfile.example
 
 | Role | Can |
 | --- | --- |
-| employee | file claims, see own claims |
-| manager | + approve/reject claims of people whose `manager_id` is them |
-| director | + see every claim, month-end review, Excel export, close month |
-| admin | + people & reporting lines, categories, spending policy |
+| employee | file claims, withdraw one before it is decided; no edits after submission |
+| approver | + approve, reject and edit submitted claims of their direct reports |
+| admin | + see every claim in the company, month-end review, Excel, close month, audit trail |
+| super_admin | + decide on anyone's claim, people and reporting lines (onboard/offboard), categories, policy |
 
 ## Run locally (no .NET SDK needed, Docker only)
 
@@ -39,7 +39,7 @@ api/dev.sh restart   # build + start the API on http://localhost:8097 (seeds a d
 api/dev.sh smoke     # end-to-end check: employee → manager → director
 ```
 
-Dev sign-ins (seeded when `SNAPCLAIM_SEED_DEV=true`): `admin@snapclaim.local / ChangeMe123!`, `director@snapclaim.local / Director123!`, `manager@snapclaim.local / Manager123!`, `ravi@snapclaim.local` and `anita@snapclaim.local / Employee123!`.
+Dev sign-ins (seeded when `SNAPCLAIM_SEED_DEV=true`): `admin@snapclaim.local / ChangeMe123!` (super admin), `director@snapclaim.local / Director123!` (admin), `manager@snapclaim.local / Manager123!` (approver), `ravi@snapclaim.local` and `anita@snapclaim.local / Employee123!`.
 
 To enable Snap & Extract locally put `ANTHROPIC_API_KEY=sk-ant-...` in `api/.env.dev` (gitignored) and restart.
 

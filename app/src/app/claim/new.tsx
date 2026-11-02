@@ -36,6 +36,8 @@ export default function NewClaimScreen() {
   const editing = typeof id === 'string' && id.length > 0;
 
   const [loadingExisting, setLoadingExisting] = useState(editing);
+  // An approver editing someone's submitted claim saves it in place; only the claimant submits.
+  const [canSubmit, setCanSubmit] = useState(!editing);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [uploading, setUploading] = useState(false);
   const [extraction, setExtraction] = useState<Extraction | null>(null);
@@ -69,6 +71,7 @@ export default function NewClaimScreen() {
         setNotes(d.claim.notes ?? '');
         setLines(d.lines.map((l) => newLine(l.description, l.quantity === null ? '' : String(l.quantity), String(l.amount))));
         setReceipts(d.receipts);
+        setCanSubmit(d.permissions.can_submit);
       })
       .catch((err) => {
         if (!cancelled) setError(describeError(err));
@@ -335,15 +338,17 @@ export default function NewClaimScreen() {
             </Presence>
 
             <View style={styles.actions}>
-              <Button title="Save draft" variant="secondary" loading={saving === 'draft'} disabled={saving !== null || uploading} onPress={() => save(false)} />
-              <Button
-                title={parsedAmount > 0 ? `Submit ${formatMoney(parsedAmount, currency)}` : 'Submit'}
-                loading={saving === 'submit'}
-                disabled={saving !== null || uploading || blocked}
-                icon={{ ios: 'paperplane.fill', android: 'send', web: 'send' }}
-                onPress={() => save(true)}
-                style={styles.submit}
-              />
+              <Button title={canSubmit ? 'Save draft' : 'Save changes'} variant={canSubmit ? 'secondary' : 'primary'} loading={saving === 'draft'} disabled={saving !== null || uploading} onPress={() => save(false)} style={canSubmit ? undefined : styles.submit} />
+              {canSubmit ? (
+                <Button
+                  title={parsedAmount > 0 ? `Submit ${formatMoney(parsedAmount, currency)}` : 'Submit'}
+                  loading={saving === 'submit'}
+                  disabled={saving !== null || uploading || blocked}
+                  icon={{ ios: 'paperplane.fill', android: 'send', web: 'send' }}
+                  onPress={() => save(true)}
+                  style={styles.submit}
+                />
+              ) : null}
             </View>
           </>
         </Screen>

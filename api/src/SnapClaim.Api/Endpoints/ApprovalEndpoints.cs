@@ -1,6 +1,7 @@
 using Dapper;
 using SnapClaim.Api.Auth;
 using SnapClaim.Api.Data;
+using SnapClaim.Api.Services;
 
 namespace SnapClaim.Api.Endpoints;
 
@@ -13,12 +14,12 @@ public static class ApprovalEndpoints
     {
         var g = api.MapGroup("/approvals").RequireAuthorization(Policies.Approver);
 
-        // Pending queue: a manager sees their reports; directors and admins see the company.
+        // Pending queue: approvers and admins see their direct reports; the super admin sees the company.
         g.MapGet("/", async (HttpContext http, Db db, string? period, Guid? employeeId) =>
         {
             var me = Current.From(http.User);
             await using var conn = await db.Open();
-            var where = "WHERE c.company_id = @companyId AND c.status = 'submitted'" + (me.SeesAllClaims ? "" : " AND e.manager_id = @userId")
+            var where = "WHERE c.company_id = @companyId AND c.status = 'submitted'" + (me.DecidesAll ? "" : " AND e.manager_id = @userId")
                 + (period is null ? "" : " AND c.period = @period") + (employeeId is null ? "" : " AND c.employee_id = @employeeId");
             var rows = await conn.QueryAsync<ClaimEndpoints.ClaimRow>(ClaimEndpoints.ClaimSql + " " + where + " ORDER BY c.submitted_at", new { companyId = me.CompanyId, userId = me.UserId, period, employeeId });
             var list = rows.ToList();
@@ -47,12 +48,13 @@ public static class ApprovalEndpoints
                 var claim = await conn.QuerySingleOrDefaultAsync<ClaimEndpoints.ClaimRow>(ClaimEndpoints.ClaimSql + " WHERE c.id = @id AND c.company_id = @companyId FOR UPDATE OF c", new { id, companyId = me.CompanyId }, tx);
                 if (claim is null) { skipped.Add(new { id, reason = "not_found" }); continue; }
                 if (claim.Status != "submitted") { skipped.Add(new { id, reason = $"status_{claim.Status}" }); continue; }
-                if (!me.SeesAllClaims && claim.ManagerId != me.UserId) { skipped.Add(new { id, reason = "not_your_report" }); continue; }
+                if (!me.DecidesAll && claim.ManagerId != me.UserId) { skipped.Add(new { id, reason = "not_your_report" }); continue; }
                 if (claim.EmployeeId == me.UserId) { skipped.Add(new { id, reason = "own_claim" }); continue; }
                 var status = req.Decision == "approve" ? "approved" : "rejected";
                 await conn.ExecuteAsync("UPDATE claim SET status = @status::claim_status, decided_by = @userId, decided_at = now(), decision_note = @note, updated_at = now() WHERE id = @id",
                     new { id, status, userId = me.UserId, note = req.Note?.Trim() }, tx);
                 await ClaimEndpoints.Event(conn, tx, id, me.UserId, status, req.Note?.Trim());
+                await Audit.Log(conn, tx, http, me, $"approval.{req.Decision}", "claim", id, $"{(req.Decision == "approve" ? "Approved" : "Rejected")} claim #{claim.ClaimNo} \"{claim.Title}\" of {claim.EmployeeName} for {claim.Amount:0.##}", new { note = req.Note?.Trim() });
                 decided.Add(id);
             }
             await tx.CommitAsync();

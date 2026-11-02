@@ -132,6 +132,15 @@ log(`Employee now sees claim #${claim.claim_no} as cleared with ${after.data.eve
 
 const forbidden = await call('GET', '/api/v1/months/', { token: manager.access_token });
 assert.equal(forbidden.status, 403);
-log('Manager cannot reach the director month list');
+log('Approver cannot reach the month list');
+
+const audit = await call('GET', '/api/v1/audit?limit=5', { token: director.access_token });
+assert.equal(audit.status, 200);
+assert.ok(audit.data.total > 0 && audit.data.items[0].action, 'audit trail has entries');
+log(`Audit trail: ${audit.data.total} entries, latest ${audit.data.items[0].action}`);
+
+const noAudit = await call('GET', '/api/v1/audit', { token: manager.access_token });
+assert.equal(noAudit.status, 403);
+log('Approver cannot read the audit trail');
 
 console.log('\nSmoke test passed.');

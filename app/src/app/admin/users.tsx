@@ -17,9 +17,9 @@ import type { Role, User } from '@/services/types';
 
 const ROLES: { value: Role; label: string; tone: ToneName }[] = [
   { value: 'employee', label: 'Employee', tone: 'sage' },
-  { value: 'manager', label: 'Manager', tone: 'green' },
-  { value: 'director', label: 'Director', tone: 'indigo' },
-  { value: 'admin', label: 'Admin', tone: 'plum' },
+  { value: 'approver', label: 'Approver', tone: 'green' },
+  { value: 'admin', label: 'Admin', tone: 'indigo' },
+  { value: 'super_admin', label: 'Super admin', tone: 'plum' },
 ];
 const roleOf = (role: Role) => ROLES.find((r) => r.value === role) ?? ROLES[0];
 
@@ -71,7 +71,7 @@ export default function UsersScreen() {
     <Screen
       scroll
       title="People"
-      subtitle="Who files and who approves. The reporting line decides where a claim goes."
+      subtitle="Who files and who approves. The reporting line decides where a claim goes: approvers and admins decide on their direct reports; the super admin on anyone."
       back
       action={<Button title="Add person" compact icon={{ ios: 'plus', android: 'add', web: 'add' }} onPress={() => open('new')} />}>
       <>

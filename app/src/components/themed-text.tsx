@@ -23,14 +23,14 @@ const styles = StyleSheet.create({
   /** A field or section label: small sans, set in the muted colour by the caller. */
   label: { fontSize: 14, lineHeight: 20, fontWeight: 500 },
   /** Page titles. */
-  display: { fontFamily: Fonts.serif, fontSize: 38, lineHeight: 42, letterSpacing: -0.6 },
+  display: { fontFamily: Fonts.serif, fontSize: 38, lineHeight: 48, letterSpacing: -0.6 },
   /** The greeting. */
-  displayLarge: { fontFamily: Fonts.serif, fontSize: 48, lineHeight: 52, letterSpacing: -0.7 },
+  displayLarge: { fontFamily: Fonts.serif, fontSize: 48, lineHeight: 58, letterSpacing: -0.7 },
   /** Section headings and card titles. */
-  serif: { fontFamily: Fonts.serif, fontSize: 26, lineHeight: 30, letterSpacing: -0.3 },
-  serifSmall: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 24 },
+  serif: { fontFamily: Fonts.serif, fontSize: 26, lineHeight: 34, letterSpacing: -0.3 },
+  serifSmall: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 26 },
   serifItalic: { fontFamily: Fonts.serifItalic, fontSize: 18, lineHeight: 24 },
   /** The one big number on a card. */
-  figure: { fontFamily: Fonts.serif, fontSize: 52, lineHeight: 56, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  figure: { fontFamily: Fonts.serif, fontSize: 52, lineHeight: 62, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   code: { fontFamily: Fonts.mono, fontSize: 12 },
 });

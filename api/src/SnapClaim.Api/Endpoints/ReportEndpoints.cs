@@ -49,7 +49,7 @@ public static partial class ReportEndpoints
 
     public static void Map(RouteGroupBuilder api)
     {
-        var g = api.MapGroup("/months").RequireAuthorization(Policies.Director);
+        var g = api.MapGroup("/months").RequireAuthorization(Policies.Reviewer);
 
         g.MapGet("/", async (HttpContext http, Db db) =>
         {
@@ -97,6 +97,7 @@ public static partial class ReportEndpoints
             var bytes = await exporter.MonthWorkbook(conn, me.CompanyId, period, me.Name);
             var company = await conn.ExecuteScalarAsync<string>("SELECT name FROM company WHERE id = @id", new { id = me.CompanyId }) ?? "SnapClaim";
             var safe = Regex.Replace(company, @"[^A-Za-z0-9]+", "-").Trim('-');
+            await Audit.Log(conn, null, http, me, "month.export", "month", period, $"Exported the {period} workbook");
             return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"SnapClaim-{safe}-{period}.xlsx");
         });
 
@@ -119,6 +120,7 @@ public static partial class ReportEndpoints
                 INSERT INTO month_close(company_id, period, closed_by, claim_count, total_amount, note) VALUES (@companyId, @period, @userId, @n, @amount, @note)
                 ON CONFLICT (company_id, period) DO UPDATE SET closed_by = EXCLUDED.closed_by, closed_at = now(), claim_count = EXCLUDED.claim_count, total_amount = EXCLUDED.total_amount, note = coalesce(EXCLUDED.note, month_close.note)
                 """, new { companyId = me.CompanyId, period, userId = me.UserId, totals.n, totals.amount, note = req?.Note?.Trim() }, tx);
+            await Audit.Log(conn, tx, http, me, "month.close", "month", period, $"Closed {period}: cleared {ids.Count} approved claim(s)", new { newly_cleared = ids.Count, still_pending = pending, note = req?.Note?.Trim() });
             await tx.CommitAsync();
             return Results.Ok(new { period, newly_cleared = ids.Count, cleared_total = totals.n, cleared_amount = totals.amount, still_pending = pending });
         });

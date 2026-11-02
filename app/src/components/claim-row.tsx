@@ -95,5 +95,5 @@ const styles = StyleSheet.create({
   main: { flex: 1, gap: 2 },
   flag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one, paddingTop: 2 },
   side: { alignItems: 'flex-end', gap: Spacing.one },
-  amount: { fontFamily: Fonts.serif, fontSize: 22, lineHeight: 26, fontVariant: ['tabular-nums'] },
+  amount: { fontFamily: Fonts.serif, fontSize: 22, lineHeight: 28, fontVariant: ['tabular-nums'] },
 });

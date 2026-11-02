@@ -10,11 +10,13 @@ public sealed class Current
     public string Role { get; }
     public string Name { get; }
 
-    public bool IsAdmin => Role == Roles.Admin;
-    public bool IsDirector => Role is Roles.Admin or Roles.Director;
-    public bool IsApprover => Role is Roles.Admin or Roles.Director or Roles.Manager;
-    /// <summary>Directors and admins see every claim in the company; managers only their reports'.</summary>
-    public bool SeesAllClaims => IsDirector;
+    public bool IsSuperAdmin => Role == Roles.SuperAdmin;
+    /// <summary>Admins and super admins: they see every claim and run month-end.</summary>
+    public bool IsReviewer => Role is Roles.SuperAdmin or Roles.Admin;
+    public bool IsApprover => Role is Roles.SuperAdmin or Roles.Admin or Roles.Approver;
+    public bool SeesAllClaims => IsReviewer;
+    /// <summary>Only the super admin decides on any claim; admins and approvers decide on their direct reports'.</summary>
+    public bool DecidesAll => IsSuperAdmin;
 
     private Current(ClaimsPrincipal p)
     {
@@ -26,7 +28,10 @@ public sealed class Current
 
     public static Current From(ClaimsPrincipal p) => new(p);
 
-    public void RequireApprover() { if (!IsApprover) throw ApiException.Forbidden("Requires manager, director or admin"); }
-    public void RequireDirector() { if (!IsDirector) throw ApiException.Forbidden("Requires director or admin"); }
-    public void RequireAdmin() { if (!IsAdmin) throw ApiException.Forbidden("Requires admin"); }
+    /// <summary>May this caller approve, reject or edit a submitted claim of the given employee?</summary>
+    public bool MayDecide(Guid employeeId, Guid? managerId) => employeeId != UserId && (DecidesAll || (IsApprover && managerId == UserId));
+
+    public void RequireApprover() { if (!IsApprover) throw ApiException.Forbidden("Requires approver, admin or super admin"); }
+    public void RequireReviewer() { if (!IsReviewer) throw ApiException.Forbidden("Requires admin or super admin"); }
+    public void RequireSuperAdmin() { if (!IsSuperAdmin) throw ApiException.Forbidden("Requires super admin"); }
 }

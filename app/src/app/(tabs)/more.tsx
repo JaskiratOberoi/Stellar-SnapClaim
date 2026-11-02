@@ -17,7 +17,7 @@ import { Tap } from '@/motion/tap';
 import { API_URL, api, describeError } from '@/services/api';
 import { formatNumber } from '@/services/format';
 
-const ROLE_LABEL = { admin: 'Administrator', director: 'Director', manager: 'Manager', employee: 'Employee' } as const;
+const ROLE_LABEL = { super_admin: 'Super admin', admin: 'Admin', approver: 'Approver', employee: 'Employee' } as const;
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -60,10 +60,11 @@ export default function SettingsScreen() {
           </View>
         </SettingsSection>
 
-        {can('users') || can('policy') ? (
-          <SettingsSection title="Administration" description="People, reporting lines and the spending policy.">
-            <LinkCard icon={{ ios: 'person.2.fill', android: 'group', web: 'group' }} title="People & reporting lines" subtitle="Add employees, set managers and roles" onPress={() => router.push('/admin/users')} />
-            <LinkCard icon={{ ios: 'shield.lefthalf.filled', android: 'policy', web: 'policy' }} title="Spending policy" subtitle="Caps, receipt thresholds, submission window" onPress={() => router.push('/admin/policy')} />
+        {can('users') || can('policy') || can('audit') ? (
+          <SettingsSection title="Administration" description="People, the spending policy, and the record of everything anyone did.">
+            {can('users') ? <LinkCard icon={{ ios: 'person.2.fill', android: 'group', web: 'group' }} title="People & reporting lines" subtitle="Onboard and offboard, set approvers and roles" onPress={() => router.push('/admin/users')} /> : null}
+            {can('policy') ? <LinkCard icon={{ ios: 'shield.lefthalf.filled', android: 'policy', web: 'policy' }} title="Spending policy" subtitle="Caps, receipt thresholds, submission window" onPress={() => router.push('/admin/policy')} /> : null}
+            {can('audit') ? <LinkCard icon={{ ios: 'list.bullet.rectangle', android: 'history', web: 'history' }} title="Audit trail" subtitle="Every sign-in, claim, decision and change, newest first" onPress={() => router.push('/admin/audit')} /> : null}
           </SettingsSection>
         ) : null}
 

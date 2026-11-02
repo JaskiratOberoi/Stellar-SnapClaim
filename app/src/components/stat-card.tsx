@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
   badge: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   label: { flex: 1 },
   figureRow: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two, flexWrap: 'wrap' },
-  figure: { fontFamily: 'Fraunces_400Regular', fontSize: 48, lineHeight: 54, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  figure: { fontFamily: 'Fraunces_400Regular', fontSize: 48, lineHeight: 58, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   unit: { fontSize: 16, lineHeight: 22 },
 });

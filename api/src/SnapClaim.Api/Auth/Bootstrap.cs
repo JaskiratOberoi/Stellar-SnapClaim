@@ -50,12 +50,12 @@ public sealed class Bootstrap(Db db, SnapClaimOptions options, ILogger<Bootstrap
                 "INSERT INTO app_user(company_id, email, full_name, employee_code, department, password_hash, role, manager_id) VALUES (@companyId, @email, @name, @code, @dept, @hash, @role::user_role, @managerId) RETURNING id",
                 new { companyId, email, name, code, dept, hash = Hash(password), role, managerId });
 
-        await Add(options.BootstrapAdminEmail, "Administrator", Roles.Admin, options.BootstrapAdminPassword, code: "ADM01", dept: "Administration");
+        await Add(options.BootstrapAdminEmail, "Administrator", Roles.SuperAdmin, options.BootstrapAdminPassword, code: "ADM01", dept: "Administration");
         log.LogWarning("Bootstrapped admin {Email}. Change the password after first sign-in.", options.BootstrapAdminEmail);
 
         if (!options.SeedDev) return;
-        var director = await Add("director@snapclaim.local", "Meera Director", Roles.Director, "Director123!", code: "DIR01", dept: "Finance");
-        var manager = await Add("manager@snapclaim.local", "Priya Manager", Roles.Manager, "Manager123!", director, "MGR01", "Sales");
+        var director = await Add("director@snapclaim.local", "Meera Admin", Roles.Admin, "Director123!", code: "DIR01", dept: "Finance");
+        var manager = await Add("manager@snapclaim.local", "Priya Approver", Roles.Approver, "Manager123!", director, "MGR01", "Sales");
         await Add("ravi@snapclaim.local", "Ravi Kumar", Roles.Employee, "Employee123!", manager, "EMP01", "Sales");
         await Add("anita@snapclaim.local", "Anita Sharma", Roles.Employee, "Employee123!", manager, "EMP02", "Sales");
         log.LogWarning("Dev users seeded: director@ / manager@ / ravi@ / anita@snapclaim.local");

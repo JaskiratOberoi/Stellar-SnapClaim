@@ -104,8 +104,8 @@ public static class ClaimEndpoints
             switch (scope)
             {
                 case "mine": where.Add("c.employee_id = @userId"); break;
-                case "team": me.RequireApprover(); if (!me.SeesAllClaims) where.Add("e.manager_id = @userId"); where.Add("c.status <> 'draft'"); break;
-                case "all": me.RequireDirector(); where.Add("c.status <> 'draft'"); break;
+                case "team": me.RequireApprover(); if (!me.DecidesAll) where.Add("e.manager_id = @userId"); where.Add("c.status <> 'draft'"); break;
+                case "all": me.RequireReviewer(); where.Add("c.status <> 'draft'"); break;
                 default: throw ApiException.Validation("scope must be mine, team or all");
             }
             if (!string.IsNullOrEmpty(status)) where.Add("c.status = ANY(@statuses::claim_status[])");
@@ -132,7 +132,7 @@ public static class ClaimEndpoints
             var me = Current.From(http.User);
             await using var conn = await db.Open();
             var claim = await Load(conn, me, id);
-            return Results.Ok(await Detail(conn, claim));
+            return Results.Ok(await Detail(conn, me, claim));
         }).RequireAuthorization(Policies.User);
 
         g.MapPost("/", async (ClaimInput input, HttpContext http, Db db) =>
@@ -149,10 +149,11 @@ public static class ClaimEndpoints
             await SaveLines(conn, tx, id, input.Lines);
             await AttachReceipts(conn, tx, me, id, input.ReceiptIds);
             await Event(conn, tx, id, me.UserId, "created", null);
-            if (input.Submit) await Submit(conn, tx, me, id);
+            await Audit.Log(conn, tx, http, me, "claim.create", "claim", id, $"Created claim \"{input.Title.Trim()}\" for {input.Amount:0.##}", new { input.Amount, input.SpentOn, input.CategoryId });
+            if (input.Submit) await Submit(conn, tx, me, id, http);
             await tx.CommitAsync();
             var claim = await Load(conn, me, id);
-            return Results.Created($"/api/v1/claims/{id}", await Detail(conn, claim));
+            return Results.Created($"/api/v1/claims/{id}", await Detail(conn, me, claim));
         }).RequireAuthorization(Policies.User);
 
         g.MapPut("/{id:guid}", async (Guid id, ClaimInput input, HttpContext http, Db db) =>
@@ -162,8 +163,14 @@ public static class ClaimEndpoints
             await using var conn = await db.Open();
             await using var tx = await conn.BeginTransactionAsync();
             var claim = await Load(conn, me, id, tx);
-            if (claim.EmployeeId != me.UserId) throw ApiException.Forbidden("Only the claimant can edit a claim");
-            if (claim.Status is not ("draft" or "rejected")) throw ApiException.Conflict("not_editable", $"A {claim.Status} claim cannot be edited");
+            var own = claim.EmployeeId == me.UserId;
+            var ownEditable = own && (claim.Status is "draft" or "rejected");
+            var approverEditable = claim.Status == "submitted" && me.MayDecide(claim.EmployeeId, claim.ManagerId);
+            if (!ownEditable && !approverEditable)
+                throw own
+                    ? ApiException.Conflict("not_editable", $"A {claim.Status} claim cannot be edited after submission; withdraw it first")
+                    : ApiException.Forbidden("Only the claimant, their approver or the super admin can edit this claim");
+            if (approverEditable && input.Submit) throw ApiException.Validation("An approver edits a submitted claim in place; it stays submitted");
             await conn.ExecuteAsync("""
                 UPDATE claim SET title = @title, category_id = @categoryId, vendor = @vendor, spent_on = @spentOn, currency = coalesce(@currency, currency),
                                  amount = @amount, tax_amount = @tax, notes = @notes, updated_at = now()
@@ -174,9 +181,10 @@ public static class ClaimEndpoints
             await conn.ExecuteAsync("UPDATE receipt SET claim_id = NULL WHERE claim_id = @id AND NOT (id = ANY(@keep))", new { id, keep = input.ReceiptIds?.ToArray() ?? [] }, tx);
             await AttachReceipts(conn, tx, me, id, input.ReceiptIds);
             await Event(conn, tx, id, me.UserId, "updated", null);
-            if (input.Submit) await Submit(conn, tx, me, id);
+            await Audit.Log(conn, tx, http, me, approverEditable ? "claim.edit_as_approver" : "claim.update", "claim", id, approverEditable ? $"Edited submitted claim #{claim.ClaimNo} \"{input.Title.Trim()}\" ({claim.EmployeeName}) to {input.Amount:0.##}" : $"Updated claim \"{input.Title.Trim()}\" to {input.Amount:0.##}", new { input.Amount, input.SpentOn, input.CategoryId });
+            if (input.Submit) await Submit(conn, tx, me, id, http);
             await tx.CommitAsync();
-            return Results.Ok(await Detail(conn, await Load(conn, me, id)));
+            return Results.Ok(await Detail(conn, me, await Load(conn, me, id)));
         }).RequireAuthorization(Policies.User);
 
         g.MapPost("/{id:guid}/submit", async (Guid id, HttpContext http, Db db) =>
@@ -186,9 +194,9 @@ public static class ClaimEndpoints
             await using var tx = await conn.BeginTransactionAsync();
             var claim = await Load(conn, me, id, tx);
             if (claim.EmployeeId != me.UserId) throw ApiException.Forbidden("Only the claimant can submit a claim");
-            await Submit(conn, tx, me, id);
+            await Submit(conn, tx, me, id, http);
             await tx.CommitAsync();
-            return Results.Ok(await Detail(conn, await Load(conn, me, id)));
+            return Results.Ok(await Detail(conn, me, await Load(conn, me, id)));
         }).RequireAuthorization(Policies.User);
 
         // Pull a submitted claim back to draft before anyone decides on it.
@@ -199,7 +207,8 @@ public static class ClaimEndpoints
             var n = await conn.ExecuteAsync("UPDATE claim SET status = 'draft', submitted_at = NULL, updated_at = now() WHERE id = @id AND employee_id = @userId AND status = 'submitted'", new { id, userId = me.UserId });
             if (n == 0) throw ApiException.Conflict("not_withdrawable", "Only your own submitted claims can be withdrawn");
             await Event(conn, null, id, me.UserId, "withdrawn", null);
-            return Results.Ok(await Detail(conn, await Load(conn, me, id)));
+            await Audit.Log(conn, null, http, me, "claim.withdraw", "claim", id, "Withdrew a submitted claim back to draft");
+            return Results.Ok(await Detail(conn, me, await Load(conn, me, id)));
         }).RequireAuthorization(Policies.User);
 
         g.MapDelete("/{id:guid}", async (Guid id, HttpContext http, Db db) =>
@@ -207,7 +216,9 @@ public static class ClaimEndpoints
             var me = Current.From(http.User);
             await using var conn = await db.Open();
             var n = await conn.ExecuteAsync("DELETE FROM claim WHERE id = @id AND employee_id = @userId AND status IN ('draft','rejected')", new { id, userId = me.UserId });
-            return n == 0 ? throw ApiException.Conflict("not_deletable", "Only your own draft or rejected claims can be deleted") : Results.NoContent();
+            if (n == 0) throw ApiException.Conflict("not_deletable", "Only your own draft or rejected claims can be deleted");
+            await Audit.Log(conn, null, http, me, "claim.delete", "claim", id, "Deleted a draft or rejected claim");
+            return Results.NoContent();
         }).RequireAuthorization(Policies.User);
     }
 
@@ -239,7 +250,7 @@ public static class ClaimEndpoints
         if (n != receiptIds.Distinct().Count()) throw ApiException.Validation("One or more receipts are missing or belong to another claim");
     }
 
-    public static async Task Submit(NpgsqlConnection conn, NpgsqlTransaction tx, Current me, Guid id)
+    public static async Task Submit(NpgsqlConnection conn, NpgsqlTransaction tx, Current me, Guid id, HttpContext? http = null)
     {
         var claim = await conn.QuerySingleAsync<ClaimRow>(ClaimSql + " WHERE c.id = @id", new { id }, tx);
         if (claim.Status is not ("draft" or "rejected")) throw ApiException.Conflict("not_submittable", $"A {claim.Status} claim cannot be submitted");
@@ -249,6 +260,7 @@ public static class ClaimEndpoints
         await conn.ExecuteAsync("UPDATE claim SET status = 'submitted', submitted_at = now(), policy_flags = @flags::jsonb, decided_by = NULL, decided_at = NULL, decision_note = NULL, updated_at = now() WHERE id = @id",
             new { id, flags = JsonSerializer.Serialize(flags, JsonOpts) }, tx);
         await Event(conn, tx, id, me.UserId, "submitted", flags.Count == 0 ? null : $"{flags.Count} policy flag(s)");
+        await Audit.Log(conn, tx, http, me, "claim.submit", "claim", id, $"Submitted claim #{claim.ClaimNo} \"{claim.Title}\" for {claim.Amount:0.##}", new { flags = flags.Count });
     }
 
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
@@ -266,8 +278,11 @@ public static class ClaimEndpoints
         throw ApiException.Forbidden();
     }
 
-    public static async Task<object> Detail(NpgsqlConnection conn, ClaimRow claim)
+    public static async Task<object> Detail(NpgsqlConnection conn, Current me, ClaimRow claim)
     {
+        var own = claim.EmployeeId == me.UserId;
+        var ownEditable = own && (claim.Status is "draft" or "rejected");
+        var decides = claim.Status == "submitted" && me.MayDecide(claim.EmployeeId, claim.ManagerId);
         var lines = await conn.QueryAsync<LineRow>("SELECT id, description, quantity, unit_price, amount FROM claim_line WHERE claim_id = @id ORDER BY sort_order", new { id = claim.Id });
         var receipts = await conn.QueryAsync<ReceiptEndpoints.ReceiptRow>(ReceiptEndpoints.ReceiptSql + " WHERE claim_id = @id ORDER BY created_at", new { id = claim.Id });
         var events = await conn.QueryAsync<EventRow>("SELECT ev.id, ev.action, ev.note, a.full_name AS actor_name, ev.created_at FROM claim_event ev LEFT JOIN app_user a ON a.id = ev.actor_id WHERE ev.claim_id = @id ORDER BY ev.created_at", new { id = claim.Id });
@@ -277,6 +292,14 @@ public static class ClaimEndpoints
             lines,
             receipts = receipts.Select(ReceiptEndpoints.Shape),
             events,
+            permissions = new
+            {
+                can_edit = ownEditable || decides,
+                can_submit = ownEditable,
+                can_withdraw = own && claim.Status == "submitted",
+                can_delete = ownEditable,
+                can_decide = decides,
+            },
         };
     }
 }

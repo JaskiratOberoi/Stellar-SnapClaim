@@ -93,9 +93,9 @@ builder.Services
 builder.Services.AddAuthorization(o =>
 {
     o.AddPolicy(Policies.User, p => p.RequireAuthenticatedUser().RequireClaim("typ", "user"));
-    o.AddPolicy(Policies.Approver, p => p.RequireAuthenticatedUser().RequireRole(Roles.Admin, Roles.Director, Roles.Manager));
-    o.AddPolicy(Policies.Director, p => p.RequireAuthenticatedUser().RequireRole(Roles.Admin, Roles.Director));
-    o.AddPolicy(Policies.Admin, p => p.RequireAuthenticatedUser().RequireRole(Roles.Admin));
+    o.AddPolicy(Policies.Approver, p => p.RequireAuthenticatedUser().RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Approver));
+    o.AddPolicy(Policies.Reviewer, p => p.RequireAuthenticatedUser().RequireRole(Roles.SuperAdmin, Roles.Admin));
+    o.AddPolicy(Policies.SuperAdmin, p => p.RequireAuthenticatedUser().RequireRole(Roles.SuperAdmin));
 });
 
 var app = builder.Build();
@@ -151,6 +151,7 @@ ClaimEndpoints.Map(api);
 ApprovalEndpoints.Map(api);
 ReportEndpoints.Map(api);
 AdminEndpoints.Map(api);
+AuditEndpoints.Map(api);
 
 // ---- startup work ----------------------------------------------------------
 await app.Services.GetRequiredService<Migrator>().ApplyAsync(CancellationToken.None);

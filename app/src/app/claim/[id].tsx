@@ -34,7 +34,7 @@ const EVENT_LABEL: Record<string, string> = {
 export default function ClaimDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user, can } = useSession();
+  const { user } = useSession();
   const { data, error, loading, reload } = useRequest(() => api<ClaimDetail>(`/api/v1/claims/${id}`), [id]);
   useFocusEffect(
     useCallback(() => {
@@ -71,8 +71,9 @@ export default function ClaimDetailScreen() {
 
   const { claim, lines, receipts, events } = data;
   const mine = claim.employee.id === user?.id;
-  const editable = mine && (claim.status === 'draft' || claim.status === 'rejected');
-  const canDecide = !mine && can('claims.approve') && claim.status === 'submitted';
+  const p = data.permissions;
+  const editable = p.can_edit;
+  const canDecide = p.can_decide;
 
   return (
     <Screen title={claim.title} subtitle={`Claim #${claim.claim_no}${mine ? '' : ` · ${claim.employee.full_name}`}`} back scroll>
@@ -164,8 +165,9 @@ export default function ClaimDetailScreen() {
         {editable || (mine && claim.status === 'submitted') || canDecide ? <SectionTitle>Actions</SectionTitle> : null}
         {editable ? (
           <View style={styles.actions}>
-            <Button title="Edit" variant="secondary" icon={{ ios: 'pencil', android: 'edit', web: 'edit' }} onPress={() => router.push({ pathname: '/claim/new', params: { id: claim.id } })} />
-            <Button title="Submit" icon={{ ios: 'paperplane.fill', android: 'send', web: 'send' }} loading={busy === 'submit'} disabled={busy !== null} onPress={() => run('submit', () => api(`/api/v1/claims/${claim.id}/submit`, { method: 'POST' }))} />
+            <Button title={mine ? 'Edit' : 'Edit as approver'} variant="secondary" icon={{ ios: 'pencil', android: 'edit', web: 'edit' }} onPress={() => router.push({ pathname: '/claim/new', params: { id: claim.id } })} />
+            {p.can_submit ? <Button title="Submit" icon={{ ios: 'paperplane.fill', android: 'send', web: 'send' }} loading={busy === 'submit'} disabled={busy !== null} onPress={() => run('submit', () => api(`/api/v1/claims/${claim.id}/submit`, { method: 'POST' }))} /> : null}
+            {p.can_delete ? (
             <Button
               title={confirmDelete ? 'Confirm delete' : 'Delete'}
               variant={confirmDelete ? 'danger' : 'ghost'}
@@ -173,9 +175,10 @@ export default function ClaimDetailScreen() {
               disabled={busy !== null}
               onPress={() => (confirmDelete ? run('delete', () => api(`/api/v1/claims/${claim.id}`, { method: 'DELETE' }), () => router.back()) : setConfirmDelete(true))}
             />
+            ) : null}
           </View>
         ) : null}
-        {mine && claim.status === 'submitted' ? (
+        {p.can_withdraw ? (
           <View style={styles.actions}>
             <Button title="Withdraw to draft" variant="secondary" loading={busy === 'withdraw'} disabled={busy !== null} onPress={() => run('withdraw', () => api(`/api/v1/claims/${claim.id}/withdraw`, { method: 'POST' }))} />
           </View>

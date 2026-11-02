@@ -1,4 +1,20 @@
-export type Role = 'admin' | 'director' | 'manager' | 'employee';
+export type Role = 'super_admin' | 'admin' | 'approver' | 'employee';
+
+/** What the caller may do with one claim, decided by the API. */
+export type ClaimPermissions = { can_edit: boolean; can_submit: boolean; can_withdraw: boolean; can_delete: boolean; can_decide: boolean };
+
+export type AuditEntry = {
+  id: number;
+  actor_id: string | null;
+  actor_name: string;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  summary: string;
+  details: Record<string, unknown>;
+  ip: string | null;
+  created_at: string;
+};
 export type ClaimStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'cleared';
 
 export type User = {
@@ -94,7 +110,7 @@ export type Claim = {
 export type ClaimLine = { id?: string; description: string; quantity: number | null; unit_price: number | null; amount: number };
 export type ClaimEvent = { id: string; action: string; note: string | null; actor_name: string | null; created_at: string };
 
-export type ClaimDetail = { claim: Claim; lines: ClaimLine[]; receipts: Receipt[]; events: ClaimEvent[] };
+export type ClaimDetail = { claim: Claim; lines: ClaimLine[]; receipts: Receipt[]; events: ClaimEvent[]; permissions: ClaimPermissions };
 
 export type ClaimInput = {
   title: string;

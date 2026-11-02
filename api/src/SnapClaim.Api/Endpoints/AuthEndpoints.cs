@@ -2,6 +2,7 @@ using Dapper;
 using Npgsql;
 using SnapClaim.Api.Auth;
 using SnapClaim.Api.Data;
+using SnapClaim.Api.Services;
 
 namespace SnapClaim.Api.Endpoints;
 
@@ -43,7 +44,7 @@ public static class AuthEndpoints
     {
         var g = api.MapGroup("/auth");
 
-        g.MapPost("/login", async (LoginRequest req, Db db, JwtIssuer jwt, SnapClaimOptions opt) =>
+        g.MapPost("/login", async (LoginRequest req, HttpContext http, Db db, JwtIssuer jwt, SnapClaimOptions opt) =>
         {
             if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
                 throw ApiException.Validation("Email and password are required");
@@ -51,10 +52,12 @@ public static class AuthEndpoints
             var user = await conn.QuerySingleOrDefaultAsync<UserRow>(UserSql + " WHERE u.email = @email", new { email = req.Email.Trim() });
             if (user is null || !user.IsActive || !Bootstrap.Verify(user.PasswordHash, req.Password))
             {
+                if (user is not null) await Audit.Log(conn, null, http, user.CompanyId, null, user.FullName, "auth.login_failed", "session", user.Id, $"Failed sign-in for {user.Email}");
                 await Task.Delay(Random.Shared.Next(150, 400));
                 throw new ApiException(401, "invalid_credentials", "Email or password is incorrect");
             }
             await conn.ExecuteAsync("UPDATE app_user SET last_login_at = now() WHERE id = @Id", new { user.Id });
+            await Audit.Log(conn, null, http, user.CompanyId, user.Id, user.FullName, "auth.login", "session", user.Id, $"{user.FullName} signed in");
             return Results.Ok(await Session(conn, user, jwt, opt));
         }).AllowAnonymous();
 
@@ -90,6 +93,7 @@ public static class AuthEndpoints
             await using var conn = await db.Open();
             await conn.ExecuteAsync("UPDATE refresh_token SET revoked_at = now() WHERE user_id = @id AND revoked_at IS NULL; UPDATE app_user SET session_version = session_version + 1 WHERE id = @id",
                 new { id = me.UserId });
+            await Audit.Log(conn, null, http, me, "auth.logout_all", "session", me.UserId, "Signed out of every device");
             return Results.NoContent();
         }).RequireAuthorization(Policies.User);
 
@@ -110,6 +114,7 @@ public static class AuthEndpoints
             var hash = await conn.ExecuteScalarAsync<string>("SELECT password_hash FROM app_user WHERE id = @id", new { id = me.UserId });
             if (hash is null || !Bootstrap.Verify(hash, req.CurrentPassword)) throw new ApiException(400, "wrong_password", "Current password is incorrect");
             await conn.ExecuteAsync("UPDATE app_user SET password_hash = @hash, updated_at = now() WHERE id = @id", new { hash = Bootstrap.Hash(req.NewPassword), id = me.UserId });
+            await Audit.Log(conn, null, http, me, "auth.change_password", "session", me.UserId, "Changed their password");
             return Results.NoContent();
         }).RequireAuthorization(Policies.User);
     }

@@ -100,6 +100,7 @@ public static class ReceiptEndpoints
             var data = await conn.ExecuteScalarAsync<byte[]>("SELECT data FROM receipt WHERE id = @id", new { id });
             await RunExtraction(conn, me.CompanyId, id, data!, row.ContentType, extractor, ct);
             var fresh = await conn.QuerySingleAsync<ReceiptRow>(ReceiptSql + " WHERE id = @id", new { id });
+            await Audit.Log(conn, null, http, me, "receipt.extract", "receipt", id, "Re-read a receipt");
             return Results.Ok(Shape(fresh));
         }).RequireAuthorization(Policies.User);
 
@@ -116,7 +117,9 @@ public static class ReceiptEndpoints
                 // Unattached receipts have no claim row for the USING join; delete those directly.
                 n = await conn.ExecuteAsync("DELETE FROM receipt WHERE id = @id AND uploaded_by = @userId AND claim_id IS NULL", new { id, userId = me.UserId });
             }
-            return n == 0 ? throw ApiException.NotFound("Receipt") : Results.NoContent();
+            if (n == 0) throw ApiException.NotFound("Receipt");
+            await Audit.Log(conn, null, http, me, "receipt.delete", "receipt", id, "Removed a receipt");
+            return Results.NoContent();
         }).RequireAuthorization(Policies.User);
     }
 
@@ -144,6 +147,7 @@ public static class ReceiptEndpoints
             """, new { companyId = me.CompanyId, userId = me.UserId, contentType, size = data.Length, sha = Convert.ToHexString(SHA256.HashData(data)).ToLowerInvariant(), data });
         await RunExtraction(conn, me.CompanyId, id, data, contentType, extractor, ct);
         var row = await conn.QuerySingleAsync<ReceiptRow>(ReceiptSql + " WHERE id = @id", new { id });
+        await Audit.Log(conn, null, http, me, "receipt.upload", "receipt", id, $"Uploaded a {contentType} receipt ({Math.Max(1, data.Length / 1024)} KB)", new { size = data.Length, content_type = contentType });
         return Shape(row);
     }
 
