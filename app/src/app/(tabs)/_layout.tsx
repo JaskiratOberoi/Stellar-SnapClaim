@@ -3,6 +3,7 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useWindowDimensions, type ColorValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RailBar } from '@/components/rail-bar';
 import { PhoneWidth, Radius } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -30,6 +31,7 @@ export default function TabLayout() {
   return (
     <Tabs
       safeAreaInsets={{ bottom: 0 }}
+      tabBar={rail ? (props) => <RailBar {...props} /> : undefined}
       screenOptions={{
         headerShown: false,
         animation: 'shift',
