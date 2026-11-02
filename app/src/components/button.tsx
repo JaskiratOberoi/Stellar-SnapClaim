@@ -17,6 +17,7 @@ type Props = {
   compact?: boolean;
 };
 
+/** Pills. The primary one is plum; the rest sit on beige or on nothing. */
 export function Button({ title, onPress, variant = 'primary', loading, disabled, icon, style, compact }: Props) {
   const theme = useTheme();
   const bg = { primary: theme.accent, secondary: theme.backgroundElement, danger: theme.danger, ghost: 'transparent' }[variant];
@@ -42,7 +43,7 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
       ) : (
         <>
           {icon ? <SymbolView name={icon} size={compact ? 15 : 17} tintColor={fg} /> : null}
-          <ThemedText type={compact ? 'smallBold' : 'default'} style={{ color: fg, fontWeight: 700 }} numberOfLines={1}>
+          <ThemedText type={compact ? 'smallBold' : 'default'} style={{ color: fg, fontWeight: 600 }} numberOfLines={1}>
             {title}
           </ThemedText>
         </>
@@ -58,8 +59,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.two,
     paddingHorizontal: Spacing.four,
-    minHeight: 48,
-    borderRadius: Radius.medium,
+    minHeight: 50,
+    borderRadius: Radius.pill,
   },
-  compact: { minHeight: 38, paddingHorizontal: Spacing.three, borderRadius: Radius.small },
+  compact: { minHeight: 38, paddingHorizontal: Spacing.three },
 });

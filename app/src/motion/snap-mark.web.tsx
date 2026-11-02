@@ -2,7 +2,7 @@ import { useEffect, useRef, type ComponentRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius } from '@/constants/theme';
+import { Fonts, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { dom, EASE, gsap, reducedMotion } from '@/motion/web';
 
@@ -36,10 +36,10 @@ export function SnapMark({ size = 72 }: { size?: number }) {
   return (
     <View ref={mark} style={[styles.mark, { width: size, height: size, backgroundColor: theme.accent }]}>
       <View ref={glyph} style={styles.glyph}>
-        <ThemedText style={[styles.text, { color: theme.textOnAccent, fontSize: size * 0.53, lineHeight: size * 0.62 }]}>S</ThemedText>
+        <ThemedText style={[styles.text, { color: theme.textOnAccent, fontSize: size * 0.62, lineHeight: size * 0.7 }]}>S</ThemedText>
         <View style={[styles.lens, { borderColor: theme.textOnAccent, width: size * 0.2, height: size * 0.2, borderRadius: size * 0.1 }]} />
       </View>
-      <View ref={flash} pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: '#FFFFFF', opacity: 0 }]} />
+      <View ref={flash} pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: '#F8F4EF', opacity: 0 }]} />
     </View>
   );
 }
@@ -47,6 +47,6 @@ export function SnapMark({ size = 72 }: { size?: number }) {
 const styles = StyleSheet.create({
   mark: { borderRadius: Radius.large, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   glyph: { alignItems: 'center', justifyContent: 'center' },
-  text: { fontWeight: 800, letterSpacing: -1 },
+  text: { fontFamily: Fonts.serif, letterSpacing: -1 },
   lens: { position: 'absolute', right: -14, bottom: -4, borderWidth: 2.5, opacity: 0.9 },
 });

@@ -262,7 +262,7 @@ export default function NewClaimScreen() {
             <View style={styles.form}>
               <Field label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Client lunch, Delhi" flashKey={filled} flashDelay={0} />
               <View style={styles.chipsWrap}>
-                <ThemedText type="smallBold" themeColor="textSecondary">
+                <ThemedText type="eyebrow" themeColor="textSecondary">
                   Category
                 </ThemedText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chips}>

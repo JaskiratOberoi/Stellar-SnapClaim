@@ -8,7 +8,7 @@ import { Button } from '@/components/button';
 import { ClaimRow } from '@/components/claim-row';
 import { Card, EmptyNote, ErrorNote, Loading, Screen, SectionTitle } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -228,7 +228,7 @@ function Tile({
   return (
     <Reveal delay={delay} y={10} style={styles.tileOuter}>
       <View style={[styles.tile, { backgroundColor: theme.backgroundElement }]}>
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+        <ThemedText type="eyebrow" themeColor="textSecondary" numberOfLines={1}>
           {label}
         </ThemedText>
         <CountUp value={value} format={format} style={[styles.tileValue, { color }]} numberOfLines={1} adjustsFontSizeToFit />
@@ -244,18 +244,18 @@ const styles = StyleSheet.create({
   nav: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
   navButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   navTitle: { flex: 1, alignItems: 'center', gap: Spacing.half },
-  month: { fontSize: 20, lineHeight: 26, fontWeight: 800, letterSpacing: -0.3 },
+  month: { fontFamily: Fonts.serif, fontSize: 24, lineHeight: 28 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
   tileOuter: { flexBasis: '46%', flexGrow: 1 },
-  tile: { borderRadius: Radius.medium, paddingHorizontal: Spacing.three, paddingVertical: Spacing.three, gap: Spacing.half },
-  tileValue: { fontSize: 24, lineHeight: 30, fontWeight: 800, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  tile: { borderRadius: Radius.large, paddingHorizontal: Spacing.three + Spacing.one, paddingVertical: Spacing.three + Spacing.one, gap: Spacing.one },
+  tileValue: { fontFamily: Fonts.serif, fontSize: 30, lineHeight: 34, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
   notice: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, lineHeight: 20 },
   table: { gap: 0, paddingVertical: Spacing.one },
   tr: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.two + Spacing.half, borderBottomWidth: StyleSheet.hairlineWidth },
   tdName: { flex: 1, gap: Spacing.half },
   tdAmount: { alignItems: 'flex-end', gap: Spacing.half },
-  amount: { fontWeight: 700, fontVariant: ['tabular-nums'] },
+  amount: { fontFamily: Fonts.serif, fontSize: 19, lineHeight: 24, fontVariant: ['tabular-nums'] },
   catRow: { paddingVertical: Spacing.two, gap: Spacing.one + Spacing.half },
   catLine: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   catName: { flex: 1, fontWeight: 600 },

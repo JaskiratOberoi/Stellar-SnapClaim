@@ -2,59 +2,46 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
-export const Colors = {
-  light: {
-    text: '#0B1220',
-    textSecondary: '#5B6472',
-    textOnAccent: '#FFFFFF',
-    background: '#FFFFFF',
-    backgroundElement: '#F3F5F9',
-    backgroundSelected: '#E3E8F1',
-    border: '#E1E6EE',
-    accent: '#2F6BFF',
-    accentStrong: '#1F56E0',
-    accentSoft: '#E8EEFF',
-    success: '#1B8F4E',
-    successSoft: '#E3F5E9',
-    warning: '#B45309',
-    warningSoft: '#FFF4E0',
-    danger: '#D93025',
-    dangerSoft: '#FDE8E8',
-    shadow: '#0B1220',
-    scrim: 'rgba(11, 18, 32, 0.48)',
-  },
-  dark: {
-    text: '#F3F5F9',
-    textSecondary: '#A3ACBA',
-    textOnAccent: '#FFFFFF',
-    background: '#0B0F17',
-    backgroundElement: '#151B26',
-    backgroundSelected: '#222A38',
-    border: '#273040',
-    accent: '#5B8CFF',
-    accentStrong: '#7AA2FF',
-    accentSoft: '#1B2A4D',
-    success: '#4CC47C',
-    successSoft: '#13301F',
-    warning: '#F3A74C',
-    warningSoft: '#3A2A10',
-    danger: '#FF6B61',
-    dangerSoft: '#3D1715',
-    shadow: '#000000',
-    scrim: 'rgba(3, 6, 12, 0.64)',
-  },
+/**
+ * One light world: cream ground, beige surfaces, plum as the only strong colour,
+ * a high-contrast serif for display and a quiet sans for everything else.
+ */
+export const Palette = {
+  text: '#2E2226',
+  textSecondary: '#8A7B78',
+  textOnAccent: '#FBF7F3',
+  background: '#F8F4EF',
+  backgroundElement: '#EFE6DE',
+  backgroundSelected: '#E6D9CF',
+  field: '#F3ECE5',
+  border: '#E6DCD3',
+  accent: '#4A3339',
+  accentStrong: '#3A272C',
+  accentSoft: '#EADCD8',
+  success: '#4F7A5C',
+  successSoft: '#E3EEE4',
+  warning: '#A8672E',
+  warningSoft: '#F6E7D6',
+  danger: '#B4483C',
+  dangerSoft: '#F6DFDA',
+  shadow: '#3B2A2F',
+  scrim: 'rgba(46, 34, 38, 0.42)',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export const Colors = { light: Palette, dark: Palette } as const;
 
-export const Fonts = Platform.select({
-  ios: { sans: 'system-ui', serif: 'ui-serif', rounded: 'ui-rounded', mono: 'ui-monospace' },
-  default: { sans: 'normal', serif: 'serif', rounded: 'normal', mono: 'monospace' },
-  web: { sans: 'var(--font-display)', serif: 'var(--font-serif)', rounded: 'var(--font-rounded)', mono: 'var(--font-mono)' },
-});
+export type ThemeColor = keyof typeof Palette;
+
+/** Instrument Serif is loaded at startup on every platform (see app/_layout.tsx). */
+export const Fonts = {
+  sans: Platform.select({ ios: 'system-ui', web: 'var(--font-sans)', default: 'normal' }),
+  serif: 'InstrumentSerif_400Regular',
+  serifItalic: 'InstrumentSerif_400Regular_Italic',
+  mono: Platform.select({ ios: 'ui-monospace', web: 'var(--font-mono)', default: 'monospace' }),
+} as const;
 
 export const Spacing = { half: 2, one: 4, two: 8, three: 16, four: 24, five: 32, six: 64 } as const;
-export const Radius = { small: 10, medium: 16, large: 22, pill: 999 } as const;
+export const Radius = { small: 12, medium: 20, large: 28, pill: 999 } as const;
 
 /** One easing and three durations, shared by GSAP on web and Reanimated on phones. */
 export const Motion = {

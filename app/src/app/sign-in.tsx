@@ -46,10 +46,10 @@ export default function SignInScreen() {
         <View style={styles.card}>
           <SnapMark size={76} />
           <Reveal delay={240} y={10}>
-            <ThemedText style={styles.brand}>SnapClaim</ThemedText>
+            <ThemedText type="displayLarge" style={styles.brand}>SnapClaim</ThemedText>
           </Reveal>
           <Reveal delay={340} y={8}>
-            <ThemedText themeColor="textSecondary" style={styles.tagline}>
+            <ThemedText type="serifItalic" themeColor="textSecondary" style={styles.tagline}>
               Snap the bill. Clear the claim.
             </ThemedText>
           </Reveal>
@@ -99,9 +99,9 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.three },
   card: { width: '100%', maxWidth: 400, alignItems: 'center', gap: Spacing.two },
-  brand: { fontSize: 34, lineHeight: 40, fontWeight: 800, letterSpacing: -1, marginTop: Spacing.two },
-  tagline: { marginBottom: Spacing.four, fontSize: 16 },
+  brand: { fontSize: 52, lineHeight: 56, marginTop: Spacing.three },
+  tagline: { marginBottom: Spacing.four, fontSize: 20, lineHeight: 26 },
   form: { width: '100%', gap: Spacing.three },
-  error: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: 10, overflow: 'hidden' },
+  error: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: 14, overflow: 'hidden' },
   footer: { textAlign: 'center', marginTop: Spacing.four, lineHeight: 20 },
 });

@@ -24,12 +24,12 @@ export function Field({ label, hint, error, trailing, prefix, style, flashKey, f
   const border = error ? theme.danger : focused ? theme.accent : 'transparent';
   return (
     <View style={styles.wrap}>
-      <ThemedText type="smallBold" themeColor="textSecondary">
+      <ThemedText type="eyebrow" themeColor="textSecondary">
         {label}
       </ThemedText>
       <FlashView
         style={[styles.row, { borderColor: border }, webTransition('border-color, background-color')]}
-        baseColor={theme.backgroundElement}
+        baseColor={theme.field}
         flashColor={theme.accentSoft}
         flashKey={flashKey}
         delay={flashDelay}>
@@ -72,14 +72,14 @@ export function FieldGroup({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: Spacing.one, flex: 1 },
+  wrap: { gap: Spacing.one + Spacing.half, flex: 1 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Radius.medium,
     borderWidth: 1.5,
-    paddingHorizontal: Spacing.three - 1.5,
-    minHeight: 48,
+    paddingHorizontal: Spacing.three + Spacing.half,
+    minHeight: 50,
   },
   prefix: { marginRight: Spacing.one },
   input: { flex: 1, fontSize: 16, paddingVertical: Spacing.two, outlineWidth: 0 },

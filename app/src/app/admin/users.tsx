@@ -83,7 +83,7 @@ export default function UsersScreen() {
                 <Field label="Employee code" value={form.employee_code} onChangeText={(v) => setForm({ ...form, employee_code: v })} placeholder="EMP01" />
                 <Field label="Department" value={form.department} onChangeText={(v) => setForm({ ...form, department: v })} placeholder="Sales" />
               </FieldGroup>
-              <ThemedText type="smallBold" themeColor="textSecondary">
+              <ThemedText type="eyebrow" themeColor="textSecondary">
                 Role
               </ThemedText>
               <View style={styles.chips}>
@@ -91,7 +91,7 @@ export default function UsersScreen() {
                   <Chip key={r.value} label={r.label} selected={form.role === r.value} onPress={() => setForm({ ...form, role: r.value })} />
                 ))}
               </View>
-              <ThemedText type="smallBold" themeColor="textSecondary">
+              <ThemedText type="eyebrow" themeColor="textSecondary">
                 Approves their claims
               </ThemedText>
               <View style={styles.chips}>

@@ -1,18 +1,25 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic, useFonts } from '@expo-google-fonts/instrument-serif';
+import { DefaultTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform, useColorScheme } from 'react-native';
+import { Platform } from 'react-native';
 
+import { Palette } from '@/constants/theme';
 import { SessionProvider, useSession } from '@/hooks/use-session';
 
 SplashScreen.preventAutoHideAsync();
 
+const theme: Theme = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, primary: Palette.accent, background: Palette.background, card: Palette.background, text: Palette.text, border: Palette.border },
+};
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({ InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic });
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={theme}>
       <SessionProvider>
-        <Navigation />
+        <Navigation fontsLoaded={fontsLoaded} />
       </SessionProvider>
     </ThemeProvider>
   );
@@ -21,15 +28,16 @@ export default function RootLayout() {
 // Phones get the native sheet; the web renders the route over the page as a Sheet of its own.
 const sheet = { presentation: Platform.select({ web: 'transparentModal' as const, default: 'modal' as const }), animation: 'slide_from_bottom' as const };
 
-function Navigation() {
+function Navigation({ fontsLoaded }: { fontsLoaded: boolean }) {
   const { ready, user } = useSession();
+  const show = ready && fontsLoaded;
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
-  if (!ready) return null;
+    if (show) SplashScreen.hideAsync();
+  }, [show]);
+  if (!show) return null;
   const signedIn = user !== null;
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: Palette.background } }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="claim/new" options={sheet} />

@@ -48,14 +48,14 @@ export default function MoreScreen() {
   const companyRule = policy.find((r) => r.category_id == null);
 
   return (
-    <Screen title="More" subtitle={company?.name}>
+    <Screen title="You" subtitle={company?.name}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }}>
         <Card style={styles.profile}>
           <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
-            <ThemedText style={{ color: theme.textOnAccent, fontWeight: 700, fontSize: 20 }}>{initials(user.full_name)}</ThemedText>
+            <ThemedText type="serif" style={{ color: theme.textOnAccent, fontSize: 24 }}>{initials(user.full_name)}</ThemedText>
           </View>
           <View style={styles.profileText}>
-            <ThemedText style={{ fontWeight: 700, fontSize: 18 }}>{user.full_name}</ThemedText>
+            <ThemedText type="serif">{user.full_name}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {[ROLE_LABEL[user.role], user.employee_code, user.department].filter(Boolean).join(' · ')}
             </ThemedText>

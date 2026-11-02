@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { StatusBadge } from '@/components/status-badge';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { Reveal } from '@/motion/reveal';
 import { Tap } from '@/motion/tap';
@@ -97,9 +97,9 @@ const styles = StyleSheet.create({
   },
   checkbox: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   main: { flex: 1, gap: Spacing.one },
-  titleLine: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },
   title: { flex: 1, fontWeight: 600 },
-  amount: { fontWeight: 700, fontVariant: ['tabular-nums'] },
+  amount: { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 24, fontVariant: ['tabular-nums'] },
   badges: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, flexWrap: 'wrap', paddingTop: Spacing.half },
   flag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one, flexShrink: 1 },
   number: { fontSize: 12, lineHeight: 16, marginLeft: 'auto' },

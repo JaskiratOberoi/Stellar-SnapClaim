@@ -81,7 +81,7 @@ export default function ClaimDetailScreen() {
         <Reveal y={10}>
         <Card style={styles.hero}>
           <View style={styles.heroTop}>
-            <ThemedText style={styles.amount}>{formatMoney(claim.amount, claim.currency)}</ThemedText>
+            <ThemedText type="displayLarge" style={styles.amount}>{formatMoney(claim.amount, claim.currency)}</ThemedText>
             <StatusBadge status={claim.status} />
           </View>
           <Meta label="Date" value={formatDate(claim.spent_on)} />
@@ -226,7 +226,7 @@ export default function ClaimDetailScreen() {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.meta}>
-      <ThemedText type="small" themeColor="textSecondary" style={styles.metaLabel}>
+      <ThemedText type="eyebrow" themeColor="textSecondary" style={styles.metaLabel}>
         {label}
       </ThemedText>
       <ThemedText type="small" style={styles.metaValue}>
@@ -240,9 +240,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   hero: { marginTop: Spacing.three },
   heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.two },
-  amount: { fontSize: 32, lineHeight: 38, fontWeight: 800, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  amount: { fontVariant: ['tabular-nums'] },
   meta: { flexDirection: 'row', gap: Spacing.two },
-  metaLabel: { width: 110 },
+  metaLabel: { width: 110, paddingTop: 2 },
   metaValue: { flex: 1 },
   hint: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two },
   receipts: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.two },

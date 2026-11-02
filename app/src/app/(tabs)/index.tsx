@@ -8,7 +8,7 @@ import { Chip } from '@/components/chip';
 import { ClaimRow } from '@/components/claim-row';
 import { EmptyNote, ErrorNote, Loading, Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -68,7 +68,7 @@ export default function MyClaimsScreen() {
                   <Tile hero label="This month" value={thisMonth.reduce((s, c) => s + c.amount, 0)} format={money} />
                 </Reveal>
                 <Reveal delay={60} style={styles.flex}>
-                  <Tile label="Awaiting" value={pending.length} format={whole} tone={pending.length ? 'warning' : undefined} />
+                  <Tile label="Pending" value={pending.length} format={whole} tone={pending.length ? 'warning' : undefined} />
                 </Reveal>
                 <Reveal delay={120} style={styles.flex}>
                   <Tile label="Claims" value={data?.total ?? 0} format={whole} />
@@ -119,13 +119,13 @@ export default function MyClaimsScreen() {
 
 function Tile({ label, value, format, tone, hero }: { label: string; value: number; format: (n: number) => string; tone?: 'warning'; hero?: boolean }) {
   const theme = useTheme();
-  const fg = hero ? theme.textOnAccent : tone === 'warning' ? theme.warning : theme.text;
+  const fg = tone === 'warning' ? theme.warning : theme.accent;
   return (
-    <View style={[styles.tile, { backgroundColor: hero ? theme.accent : theme.backgroundElement }]}>
-      <ThemedText type="small" style={{ color: hero ? theme.textOnAccent : theme.textSecondary, opacity: hero ? 0.85 : 1 }} numberOfLines={1}>
+    <View style={[styles.tile, { backgroundColor: hero ? theme.backgroundSelected : theme.backgroundElement }]}>
+      <ThemedText type="eyebrow" themeColor="textSecondary" numberOfLines={1}>
         {label}
       </ThemedText>
-      <CountUp value={value} format={format} style={[styles.tileValue, { color: fg }]} numberOfLines={1} adjustsFontSizeToFit />
+      <CountUp value={value} format={format} style={[styles.tileValue, hero && styles.tileValueHero, { color: fg }]} numberOfLines={1} adjustsFontSizeToFit />
     </View>
   );
 }
@@ -134,8 +134,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   hero: { flex: 1.5 },
   tiles: { flexDirection: 'row', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
-  tile: { flex: 1, borderRadius: Radius.medium, paddingHorizontal: Spacing.three, paddingVertical: Spacing.three, gap: Spacing.one, minHeight: 84, justifyContent: 'flex-end' },
-  tileValue: { fontSize: 24, lineHeight: 30, fontWeight: 800, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  tile: { flex: 1, borderRadius: Radius.large, paddingHorizontal: Spacing.three + Spacing.one, paddingVertical: Spacing.three + Spacing.one, gap: Spacing.one, minHeight: 96, justifyContent: 'flex-end' },
+  tileValue: { fontFamily: Fonts.serif, fontSize: 30, lineHeight: 34, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  tileValueHero: { fontSize: 40, lineHeight: 44, letterSpacing: -0.8 },
   filterScroll: { flexGrow: 0 },
   filters: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.three },
   fabOuter: { position: 'absolute', right: Spacing.three },
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     height: 54,
     borderRadius: Radius.pill,
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.22,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,

@@ -17,6 +17,8 @@ db/      sql/ migrations applied at API start, seed/ dev company + policy
 app/     Expo SDK 58 app (expo-router) for Android, iPhone and web
          src/motion/ is the motion layer: each piece has a .web.tsx (GSAP + CSS transitions)
          and a native file (Reanimated); screens import the name and Metro picks the platform
+         src/constants/theme.ts is the one light world: cream ground, beige surfaces, plum
+         accent, Instrument Serif for display (loaded at startup), tracked caps for labels
 deploy/  docker-compose (db + api + static web), .env.example, Caddyfile.example
 ```
 

@@ -28,5 +28,5 @@ export function Chip({ label, selected, onPress, tone = 'default' }: Props) {
 }
 
 const styles = StyleSheet.create({
-  chip: { paddingHorizontal: Spacing.three, minHeight: 36, justifyContent: 'center', borderRadius: Radius.pill },
+  chip: { paddingHorizontal: Spacing.three, minHeight: 38, justifyContent: 'center', borderRadius: Radius.pill },
 });

@@ -25,7 +25,7 @@ export function Screen({ title, subtitle, action, back, children, style }: Props
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={styles.header}>
         <View style={styles.headerInner}>
           {back ? (
             <Tap
@@ -39,14 +39,14 @@ export function Screen({ title, subtitle, action, back, children, style }: Props
             </Tap>
           ) : null}
           <View style={styles.titles}>
-            <ThemedText style={styles.title} numberOfLines={1}>
-              {title}
-            </ThemedText>
             {subtitle ? (
-              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+              <ThemedText type="eyebrow" themeColor="textSecondary" numberOfLines={1}>
                 {subtitle}
               </ThemedText>
             ) : null}
+            <ThemedText type="display" numberOfLines={1}>
+              {title}
+            </ThemedText>
           </View>
           {action}
         </View>
@@ -59,7 +59,7 @@ export function Screen({ title, subtitle, action, back, children, style }: Props
 export function SectionTitle({ children, trailing }: { children: ReactNode; trailing?: ReactNode }) {
   return (
     <View style={styles.sectionTitle}>
-      <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitleText}>
+      <ThemedText type="eyebrow" themeColor="textSecondary">
         {children}
       </ThemedText>
       {trailing}
@@ -108,10 +108,9 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.two + Spacing.half,
-    paddingBottom: Spacing.two + Spacing.half,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.two,
     alignItems: 'center',
   },
   headerInner: {
@@ -124,7 +123,6 @@ const styles = StyleSheet.create({
   },
   back: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   titles: { flex: 1, gap: Spacing.half },
-  title: { fontSize: 24, lineHeight: 30, fontWeight: 800, letterSpacing: -0.5 },
   content: { flex: 1, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   sectionTitle: {
     flexDirection: 'row',
@@ -135,7 +133,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.one,
     minHeight: 36,
   },
-  sectionTitleText: { textTransform: 'uppercase', letterSpacing: 0.7, fontSize: 12 },
   empty: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.three, lineHeight: 22 },
   loading: { padding: Spacing.five, alignItems: 'center' },
   error: {
@@ -150,8 +147,8 @@ const styles = StyleSheet.create({
   },
   card: {
     marginHorizontal: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Radius.medium,
+    padding: Spacing.three + Spacing.one,
+    borderRadius: Radius.large,
     gap: Spacing.two,
     ...Platform.select({ web: { cursor: 'default' } as object }),
   },

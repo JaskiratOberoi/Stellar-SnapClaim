@@ -18,7 +18,7 @@ export function StatusBadge({ status }: { status: ClaimStatus }) {
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
       <View style={[styles.dot, { backgroundColor: fg }]} />
-      <ThemedText type="small" style={{ color: fg, fontWeight: 700, fontSize: 12, lineHeight: 16 }}>
+      <ThemedText type="eyebrow" style={{ color: fg, fontSize: 10, letterSpacing: 0.8 }}>
         {STATUS_LABEL[status]}
       </ThemedText>
     </View>
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     gap: Spacing.one + Spacing.half,
     paddingLeft: Spacing.two,
     paddingRight: Spacing.two + Spacing.half,
-    paddingVertical: Spacing.one,
+    paddingVertical: Spacing.one + 1,
     borderRadius: Radius.pill,
     alignSelf: 'flex-start',
   },
