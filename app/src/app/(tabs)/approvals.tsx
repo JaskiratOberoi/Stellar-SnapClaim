@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -9,7 +9,7 @@ import { ClaimRow } from '@/components/claim-row';
 import { Field } from '@/components/field';
 import { EmptyNote, ErrorNote, Loading, Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,9 +19,12 @@ import { api, describeError } from '@/services/api';
 import { formatMoney, pluralise } from '@/services/format';
 import type { ApprovalQueue, Claim } from '@/services/types';
 
+import { RailWidth } from './_layout';
+
 export default function ApprovalsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { company, user } = useSession();
   const { data, error, loading, reload } = useRequest(() => api<ApprovalQueue>('/api/v1/approvals/'), []);
   useFocusEffect(
@@ -108,7 +111,7 @@ export default function ApprovalsScreen() {
       <Presence
         visible={chosen.length > 0 || notice !== null}
         y={24}
-        style={[styles.bar, { backgroundColor: theme.background, borderTopColor: theme.border, shadowColor: theme.shadow, paddingBottom: insets.bottom + Spacing.two }]}>
+        style={[styles.bar, { backgroundColor: theme.surfaceRaised, shadowColor: theme.shadow, bottom: width >= RailWidth ? Spacing.four : insets.bottom + 96 }]}>
         {notice ? (
           <ThemedText type="small" themeColor="textSecondary">
             {notice}
@@ -140,15 +143,14 @@ const styles = StyleSheet.create({
   spacer: { flex: 1 },
   bar: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    left: Spacing.three,
+    right: Spacing.three,
+    borderRadius: Radius.large,
     padding: Spacing.three,
     gap: Spacing.two,
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
   actions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },

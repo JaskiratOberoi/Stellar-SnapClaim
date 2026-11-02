@@ -8,9 +8,11 @@ import { Platform } from 'react-native';
  */
 export const Palette = {
   text: '#2E2226',
-  textSecondary: '#8A7B78',
+  textSecondary: '#6B5C59',
   textOnAccent: '#FBF7F3',
   background: '#F8F4EF',
+  /** The floating nav and action bars: a touch lighter than the ground so they lift off it. */
+  surfaceRaised: '#FFFDFB',
   backgroundElement: '#EFE6DE',
   backgroundSelected: '#E6D9CF',
   field: '#F3ECE5',

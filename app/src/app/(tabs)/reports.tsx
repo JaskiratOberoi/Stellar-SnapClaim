@@ -76,7 +76,7 @@ export default function ReportsScreen() {
 
   return (
     <Screen title="Month-end review" subtitle={company?.name}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
         <View style={styles.nav}>
           <Tap
             accessibilityRole="button"

@@ -49,7 +49,7 @@ export default function MoreScreen() {
 
   return (
     <Screen title="You" subtitle={company?.name}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.six }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
         <Card style={styles.profile}>
           <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
             <ThemedText type="serif" style={{ color: theme.textOnAccent, fontSize: 24 }}>{initials(user.full_name)}</ThemedText>

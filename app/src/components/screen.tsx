@@ -12,21 +12,26 @@ import { Tap } from '@/motion/tap';
 
 type Props = {
   title: string;
+  /** Tracked caps above the title: a date, a name, a count. */
   subtitle?: string;
   action?: ReactNode;
   back?: boolean;
+  /** How many lines the serif title may take. A greeting takes two. */
+  titleLines?: number;
+  /** Let the content run the full width of the window (a two-column page lays itself out). */
+  wide?: boolean;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 };
 
-/** Page frame: safe-area header with title, optional back button and action, content centred at MaxContentWidth. */
-export function Screen({ title, subtitle, action, back, children, style }: Props) {
+/** Page frame: safe-area header with eyebrow, serif title, optional back button and action; content centred at MaxContentWidth. */
+export function Screen({ title, subtitle, action, back, titleLines = 1, wide, children, style }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View style={styles.headerInner}>
+        <View style={[styles.headerInner, wide && styles.wide]}>
           {back ? (
             <Tap
               accessibilityRole="button"
@@ -44,14 +49,14 @@ export function Screen({ title, subtitle, action, back, children, style }: Props
                 {subtitle}
               </ThemedText>
             ) : null}
-            <ThemedText type="display" numberOfLines={1}>
+            <ThemedText type="display" numberOfLines={titleLines}>
               {title}
             </ThemedText>
           </View>
           {action}
         </View>
       </View>
-      <PageEnter style={[styles.content, style]}>{children}</PageEnter>
+      <PageEnter style={[styles.content, wide && styles.wide, style]}>{children}</PageEnter>
     </View>
   );
 }
@@ -121,6 +126,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two + Spacing.half,
     minHeight: 44,
   },
+  wide: { maxWidth: 1280 },
   back: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   titles: { flex: 1, gap: Spacing.half },
   content: { flex: 1, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
