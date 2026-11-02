@@ -62,7 +62,9 @@ cp deploy/.env.example deploy/.env   # fill in
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
-The API listens on `127.0.0.1:3170`, the static web build on `127.0.0.1:3171`; put Caddy in front (see `deploy/Caddyfile.example`). Migrations run at API start; the first start creates the company and the admin from `SNAPCLAIM_BOOTSTRAP_*`.
+The API listens on `127.0.0.1:${SNAPCLAIM_API_PORT}` and the static web build on `127.0.0.1:${SNAPCLAIM_WEB_PORT}`. The web container's nginx proxies `/api` and `/health` to the API, so one hostname serves both and `SNAPCLAIM_PUBLIC_API_URL` is simply the site's own origin. Put Caddy or a Cloudflare tunnel in front of the web port. Migrations run at API start; the first start creates the company and the admin from `SNAPCLAIM_BOOTSTRAP_*`.
+
+Production on this server: **https://expense.genomicslab.in** — compose project `snapclaim`, web on `127.0.0.1:3181`, API on `127.0.0.1:3180` (3170/3171 belong to another app), published through the `telo` cloudflared tunnel (`~/.cloudflared/config.yml`; a new hostname needs an elevated restart of the Cloudflared service). Secrets live in `deploy/.env` on the server only. Redeploy after a pull with the same `docker compose ... up -d --build`.
 
 ## API sketch
 
