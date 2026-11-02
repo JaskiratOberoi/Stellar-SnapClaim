@@ -47,7 +47,9 @@ npm run web          # http://localhost:8081, talks to the API at :8097 by defau
 npm run typecheck && npm run lint
 ```
 
-Set `EXPO_PUBLIC_API_URL` to point the app elsewhere. Phones need a development build (camera, secure store): `npm run eas:dev` after `npx eas-cli@latest init` links the project.
+Set `EXPO_PUBLIC_API_URL` to point the app elsewhere.
+
+Phones need a development build (camera, secure store). The project is linked to EAS as `@jaskiratoberoi/snapclaim`; `npm run eas:dev` builds an installable Android APK in the cloud. Install it, run `npm start` on the PC, and open the project from the dev launcher. Without `EXPO_PUBLIC_API_URL` the phone talks to the API on the machine running Metro (port 8097), so start the API first and keep the phone on the same network. If Metro advertises the wrong adapter (VPN, WSL, Hyper-V), run `npx expo start --host lan` with `REACT_NATIVE_PACKAGER_HOSTNAME=<your LAN IP>`.
 
 ## Deploy
 

@@ -44,7 +44,8 @@
         "expo-image-picker",
         {
           "cameraPermission": "SnapClaim uses the camera to snap receipts for expense claims.",
-          "photosPermission": "SnapClaim reads receipt photos you choose from your library."
+          "photosPermission": "SnapClaim reads receipt photos you choose from your library.",
+          "microphonePermission": false
         }
       ],
       "expo-secure-store",
@@ -53,6 +54,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "71fdc5cd-6e4d-4dbd-b23e-8d9363b360f6"
+      }
+    },
+    "owner": "jaskiratoberoi"
   }
 }

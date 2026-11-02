@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
@@ -5,8 +6,18 @@ import { Platform } from 'react-native';
 import { getSecret, setSecret } from './storage';
 import type { Session } from './types';
 
-/** Where the API lives. Set EXPO_PUBLIC_API_URL at build time; the default is the local dev loop. */
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8097').replace(/\/$/, '');
+/**
+ * Where the API lives. Set EXPO_PUBLIC_API_URL at build time. Without it the
+ * default is the local dev loop on :8097 — on a phone that means the machine
+ * running Metro, whose address Expo reports as hostUri during development,
+ * because "localhost" on the phone is the phone itself.
+ */
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? defaultDevUrl()).replace(/\/$/, '');
+
+function defaultDevUrl(): string {
+  const host = Platform.OS === 'web' ? null : Constants.expoConfig?.hostUri?.split(':')[0];
+  return `http://${host || 'localhost'}:8097`;
+}
 
 export class ApiError extends Error {
   constructor(
