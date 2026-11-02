@@ -95,7 +95,21 @@ async function refreshTokens(): Promise<boolean> {
 
 type Options = { method?: string; body?: unknown; form?: FormData; raw?: boolean; auth?: boolean };
 
+/** True when the access token has expired or is within half a minute of it, read from its own payload. */
+function expiresSoon(token: string): boolean {
+  try {
+    const payload = token.split('.')[1] ?? '';
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const exp = (JSON.parse(json) as { exp?: number }).exp;
+    return typeof exp === 'number' && exp * 1000 < Date.now() + 30_000;
+  } catch {
+    return false;
+  }
+}
+
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
+  // Trade an expired token for a fresh one up front, rather than letting the request fail first.
+  if (options.auth !== false && tokens && expiresSoon(tokens.access)) await refreshTokens();
   const attempt = async (): Promise<Response> => {
     const headers: Record<string, string> = {};
     if (options.auth !== false && tokens) headers.authorization = `Bearer ${tokens.access}`;
