@@ -1,14 +1,19 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
 const TITLE = 'SnapClaim';
 const DESCRIPTION = 'Snap the bill. Clear the claim. Expense claims for Qugen Pathlabs: snap a receipt, let it read itself into a claim, get it approved and cleared at month-end.';
 const ORIGIN = 'https://expense.genomicslab.in';
 
-/** The document every web page is served in: branding, icons, manifest and social tags. */
+/**
+ * The document every web page is served in: branding, icons, manifest and social
+ * tags. Runs only at export time in Node. headNodes carry the generated styles and
+ * bodyNodes the script bundles; without them the page is an empty shell.
+ */
 export default function Root({ children }: PropsWithChildren) {
+  const { headNodes, bodyNodes, htmlAttributes, bodyAttributes } = useServerDocumentContext();
   return (
-    <html lang="en">
+    <html lang="en" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -40,8 +45,12 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="twitter:description" content={DESCRIPTION} />
         <meta name="twitter:image" content={`${ORIGIN}/og.png`} />
         <ScrollViewStyleReset />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }
