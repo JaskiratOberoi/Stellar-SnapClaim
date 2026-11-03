@@ -62,7 +62,7 @@ export default function SettingsScreen() {
 
         {can('users') || can('policy') || can('audit') ? (
           <SettingsSection title="Administration" description="People, the spending policy, and the record of everything anyone did.">
-            {can('users') ? <LinkCard icon={{ ios: 'person.2.fill', android: 'group', web: 'group' }} title="People & reporting lines" subtitle="Onboard and offboard, set approvers and roles" onPress={() => router.push('/admin/users')} /> : null}
+            {can('users') ? <LinkCard icon={{ ios: 'person.2.fill', android: 'group', web: 'group' }} title="People & reporting lines" subtitle={can('users.admins') ? 'Onboard and offboard, set approvers and roles' : 'Onboard employees and approvers, set who approves'} onPress={() => router.push('/admin/users')} /> : null}
             {can('policy') ? <LinkCard icon={{ ios: 'shield.lefthalf.filled', android: 'policy', web: 'policy' }} title="Spending policy" subtitle="Caps, receipt thresholds, submission window" onPress={() => router.push('/admin/policy')} /> : null}
             {can('audit') ? <LinkCard icon={{ ios: 'list.bullet.rectangle', android: 'history', web: 'history' }} title="Audit trail" subtitle="Every sign-in, claim, decision and change, newest first" onPress={() => router.push('/admin/audit')} /> : null}
           </SettingsSection>

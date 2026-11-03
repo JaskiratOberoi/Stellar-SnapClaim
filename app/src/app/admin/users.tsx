@@ -22,13 +22,18 @@ const ROLES: { value: Role; label: string; tone: ToneName }[] = [
   { value: 'super_admin', label: 'Super admin', tone: 'plum' },
 ];
 const roleOf = (role: Role) => ROLES.find((r) => r.value === role) ?? ROLES[0];
+const SENIOR: Role[] = ['admin', 'super_admin'];
 
 type Form = { email: string; full_name: string; role: Role; manager_id: string | null; employee_code: string; department: string; password: string; is_active: boolean };
 const blank: Form = { email: '', full_name: '', role: 'employee', manager_id: null, employee_code: '', department: '', password: '', is_active: true };
 
 export default function UsersScreen() {
   const theme = useTheme();
-  const { user: me } = useSession();
+  const { user: me, can } = useSession();
+  // Admins onboard employees and approvers; only a super admin hands out or touches the senior roles.
+  const seniorRoles = can('users.admins');
+  const roles = seniorRoles ? ROLES : ROLES.filter((r) => !SENIOR.includes(r.value));
+  const mayEdit = (u: User) => seniorRoles || !SENIOR.includes(u.role);
   const { data, error, loading, reload } = useRequest(() => api<{ items: User[] }>('/api/v1/users?include_inactive=true'), []);
   const [editing, setEditing] = useState<User | 'new' | null>(null);
   const [form, setForm] = useState<Form>(blank);
@@ -71,7 +76,11 @@ export default function UsersScreen() {
     <Screen
       scroll
       title="People"
-      subtitle="Who files and who approves. The reporting line decides where a claim goes: approvers and admins decide on their direct reports; the super admin on anyone."
+      subtitle={
+        seniorRoles
+          ? 'Who files and who approves. The reporting line decides where a claim goes: approvers and admins decide on their direct reports; the super admin on anyone.'
+          : 'Onboard employees and approvers and set who approves their claims. Admins and super admins are looked after by the super admin.'
+      }
       back
       action={<Button title="Add person" compact icon={{ ios: 'plus', android: 'add', web: 'add' }} onPress={() => open('new')} />}>
       <>
@@ -93,7 +102,7 @@ export default function UsersScreen() {
                   Role
                 </ThemedText>
                 <View style={styles.chips}>
-                  {ROLES.map((r) => (
+                  {roles.map((r) => (
                     <Chip key={r.value} label={r.label} tone={r.tone} selected={form.role === r.value} onPress={() => setForm({ ...form, role: r.value })} />
                   ))}
                 </View>
@@ -143,12 +152,14 @@ export default function UsersScreen() {
             {users.map((u, i) => {
               const role = roleOf(u.role);
               const t = Tones[role.tone];
+              const editable = mayEdit(u);
               return (
                 <Tap
                   key={u.id}
                   accessibilityRole="button"
+                  disabled={!editable}
                   onPress={() => open(u)}
-                  scale={0.99}
+                  scale={editable ? 0.99 : 1}
                   style={({ pressed }) => [
                     styles.row,
                     { backgroundColor: pressed ? theme.backgroundElement : 'transparent', borderBottomColor: theme.border, borderBottomWidth: i === users.length - 1 ? 0 : StyleSheet.hairlineWidth, opacity: u.is_active ? 1 : 0.5 },
@@ -169,6 +180,7 @@ export default function UsersScreen() {
                     <ThemedText type="caption" themeColor="textMuted" numberOfLines={1}>
                       {u.manager_name ? `Claims go to ${u.manager_name}` : u.role === 'employee' ? 'No approver set' : 'Approves claims'}
                       {u.is_active ? '' : ' · Inactive'}
+                      {editable ? '' : ' · Super admin only'}
                     </ThemedText>
                   </View>
                   <View style={[styles.rolePill, { backgroundColor: t.soft }]}>

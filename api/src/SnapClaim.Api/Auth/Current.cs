@@ -31,6 +31,11 @@ public sealed class Current
     /// <summary>May this caller approve, reject or edit a submitted claim of the given employee?</summary>
     public bool MayDecide(Guid employeeId, Guid? managerId) => employeeId != UserId && (DecidesAll || (IsApprover && managerId == UserId));
 
+    /// <summary>Roles this caller may hand out or alter: the super admin any; an admin only employee and approver.</summary>
+    public bool MayAssign(string role) => IsSuperAdmin || (IsReviewer && role is Roles.Employee or Roles.Approver);
+    public void RequireMayAssign(string role) { if (!MayAssign(role)) throw ApiException.Forbidden("Only a super admin can make someone an admin or super admin"); }
+    public void RequireMayManage(string role) { if (!MayAssign(role)) throw ApiException.Forbidden("Only a super admin can change an admin or super admin"); }
+
     public void RequireApprover() { if (!IsApprover) throw ApiException.Forbidden("Requires approver, admin or super admin"); }
     public void RequireReviewer() { if (!IsReviewer) throw ApiException.Forbidden("Requires admin or super admin"); }
     public void RequireSuperAdmin() { if (!IsSuperAdmin) throw ApiException.Forbidden("Requires super admin"); }

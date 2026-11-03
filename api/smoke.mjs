@@ -115,6 +115,41 @@ assert.equal(month.status, 200);
 assert.ok(month.data.month.approved >= 1);
 log(`Director month view: ${month.data.month.approved} approved, ${month.data.by_employee.length} employee(s), ${month.data.flagged.length} flagged`);
 
+// People: an admin onboards employees and approvers; the senior roles stay with the super admin.
+const stamp = Date.now().toString(36);
+const newcomer = { email: `smoke-${stamp}@snapclaim.local`, full_name: 'Smoke Newcomer', role: 'employee', manager_id: manager.user.id, password: 'Welcome123!' };
+const onboarded = await call('POST', '/api/v1/admin/users', { token: director.access_token, body: newcomer });
+assert.equal(onboarded.status, 201, JSON.stringify(onboarded.data));
+assert.equal(onboarded.data.role, 'employee');
+log(`Admin onboarded ${onboarded.data.full_name} as employee`);
+
+const promoted = await call('PUT', `/api/v1/admin/users/${onboarded.data.id}`, { token: director.access_token, body: { ...newcomer, role: 'approver', password: null } });
+assert.equal(promoted.status, 200, JSON.stringify(promoted.data));
+assert.equal(promoted.data.role, 'approver');
+log('Admin made them an approver');
+
+const noAdmin = await call('POST', '/api/v1/admin/users', { token: director.access_token, body: { ...newcomer, email: `smoke-${stamp}-b@snapclaim.local`, role: 'admin' } });
+assert.equal(noAdmin.status, 403, JSON.stringify(noAdmin.data));
+const noElevate = await call('PUT', `/api/v1/admin/users/${onboarded.data.id}`, { token: director.access_token, body: { ...newcomer, role: 'super_admin', password: null } });
+assert.equal(noElevate.status, 403, JSON.stringify(noElevate.data));
+log('Admin cannot create an admin or raise anyone to super admin');
+
+const everyone = await call('GET', '/api/v1/users', { token: director.access_token });
+const superAdmin = everyone.data.items.find((u) => u.role === 'super_admin');
+assert.ok(superAdmin, 'a super admin exists');
+const noTouch = await call('PUT', `/api/v1/admin/users/${superAdmin.id}`, { token: director.access_token, body: { email: superAdmin.email, full_name: superAdmin.full_name, role: 'super_admin', manager_id: null } });
+assert.equal(noTouch.status, 403, JSON.stringify(noTouch.data));
+const noReset = await call('POST', `/api/v1/admin/users/${superAdmin.id}/reset-password`, { token: director.access_token, body: { new_password: 'Nope12345!' } });
+assert.equal(noReset.status, 403, JSON.stringify(noReset.data));
+log('Admin cannot edit the super admin or reset their password');
+
+const noPolicy = await call('PUT', '/api/v1/admin/policy', { token: director.access_token, body: [] });
+assert.equal(noPolicy.status, 403, 'policy stays super-admin only');
+const superToken = (await login('admin@snapclaim.local', 'ChangeMe123!')).access_token;
+const madeAdmin = await call('PUT', `/api/v1/admin/users/${onboarded.data.id}`, { token: superToken, body: { ...newcomer, role: 'admin', password: null, is_active: false } });
+assert.equal(madeAdmin.status, 200, JSON.stringify(madeAdmin.data));
+log('Super admin can still hand out admin and deactivate the smoke account');
+
 const xlsx = await call('GET', `/api/v1/months/${period}/export.xlsx`, { token: director.access_token });
 assert.equal(xlsx.status, 200);
 assert.ok(xlsx.data.byteLength > 4000, 'workbook has content');

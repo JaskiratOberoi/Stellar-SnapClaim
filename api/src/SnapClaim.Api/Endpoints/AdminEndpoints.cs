@@ -25,12 +25,16 @@ public static class AdminEndpoints
             return Results.Ok(new { items = rows.Select(AuthEndpoints.Profile) });
         }).RequireAuthorization(Policies.User);
 
+        // People: admins onboard and look after employees and approvers; only the super
+        // admin creates or changes admins and super admins. Categories and the policy stay super-admin.
+        var people = api.MapGroup("/admin").RequireAuthorization(Policies.Reviewer);
         var g = api.MapGroup("/admin").RequireAuthorization(Policies.SuperAdmin);
 
-        g.MapPost("/users", async (UserInput input, HttpContext http, Db db) =>
+        people.MapPost("/users", async (UserInput input, HttpContext http, Db db) =>
         {
             var me = Current.From(http.User);
             ValidateUser(input, creating: true);
+            me.RequireMayAssign(input.Role);
             await using var conn = await db.Open();
             await CheckManager(conn, me.CompanyId, input.ManagerId);
             if (await conn.ExecuteScalarAsync<bool>("SELECT EXISTS(SELECT 1 FROM app_user WHERE email = @email)", new { email = input.Email.Trim() }))
@@ -44,16 +48,18 @@ public static class AdminEndpoints
             return Results.Created($"/api/v1/users/{id}", AuthEndpoints.Profile(row));
         });
 
-        g.MapPut("/users/{id:guid}", async (Guid id, UserInput input, HttpContext http, Db db) =>
+        people.MapPut("/users/{id:guid}", async (Guid id, UserInput input, HttpContext http, Db db) =>
         {
             var me = Current.From(http.User);
             ValidateUser(input, creating: false);
+            me.RequireMayAssign(input.Role);
             if (input.ManagerId == id) throw ApiException.Validation("A user cannot be their own manager");
             await using var conn = await db.Open();
             await CheckManager(conn, me.CompanyId, input.ManagerId);
             var existing = await conn.QuerySingleOrDefaultAsync<AuthEndpoints.UserRow>(AuthEndpoints.UserSql + " WHERE u.id = @id AND u.company_id = @companyId", new { id, companyId = me.CompanyId })
                 ?? throw ApiException.NotFound("User");
-            if (id == me.UserId && (input.Role != Roles.SuperAdmin || input.IsActive == false)) throw ApiException.Validation("You cannot demote or deactivate yourself");
+            me.RequireMayManage(existing.Role);
+            if (id == me.UserId && (input.Role != me.Role || input.IsActive == false)) throw ApiException.Validation("You cannot demote or deactivate yourself");
             var roleChanged = existing.Role != input.Role || (input.IsActive is { } a && a != existing.IsActive);
             await conn.ExecuteAsync("""
                 UPDATE app_user SET email = @email, full_name = @name, employee_code = @code, department = @dept, role = @role::user_role, manager_id = @managerId,
@@ -65,11 +71,14 @@ public static class AdminEndpoints
             return Results.Ok(AuthEndpoints.Profile(row));
         });
 
-        g.MapPost("/users/{id:guid}/reset-password", async (Guid id, ResetPasswordRequest req, HttpContext http, Db db) =>
+        people.MapPost("/users/{id:guid}/reset-password", async (Guid id, ResetPasswordRequest req, HttpContext http, Db db) =>
         {
             var me = Current.From(http.User);
             if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 8) throw ApiException.Validation("Password must be at least 8 characters");
             await using var conn = await db.Open();
+            var targetRole = await conn.ExecuteScalarAsync<string?>("SELECT role::text FROM app_user WHERE id = @id AND company_id = @companyId", new { id, companyId = me.CompanyId })
+                ?? throw ApiException.NotFound("User");
+            me.RequireMayManage(targetRole);
             var n = await conn.ExecuteAsync("UPDATE app_user SET password_hash = @hash, session_version = session_version + 1, updated_at = now() WHERE id = @id AND company_id = @companyId",
                 new { id, companyId = me.CompanyId, hash = Bootstrap.Hash(req.NewPassword) });
             if (n == 0) throw ApiException.NotFound("User");
