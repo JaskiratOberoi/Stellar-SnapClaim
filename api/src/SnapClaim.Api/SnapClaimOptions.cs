@@ -21,9 +21,8 @@ public sealed class SnapClaimOptions
     public string BootstrapAdminEmail { get; init; } = "admin@snapclaim.local";
     public string BootstrapAdminPassword { get; init; } = "ChangeMe123!";
     public string BootstrapCompanyName { get; init; } = "My Company";
-    /// <summary>Company API key for receipt extraction. Empty = extraction skipped, manual entry only.</summary>
-    public string AnthropicApiKey { get; init; } = "";
-    public string ClaudeModel { get; init; } = "claude-opus-5-5";
+    /// <summary>Base URL of the OCR sidecar (ocr/). Empty = extraction skipped, manual entry only.</summary>
+    public string OcrUrl { get; init; } = "";
     public int MaxReceiptBytes { get; init; } = 8 * 1024 * 1024;
 
     public static SnapClaimOptions From(IConfiguration c)
@@ -54,8 +53,7 @@ public sealed class SnapClaimOptions
             BootstrapAdminEmail = c["SNAPCLAIM_BOOTSTRAP_ADMIN_EMAIL"] ?? "admin@snapclaim.local",
             BootstrapAdminPassword = c["SNAPCLAIM_BOOTSTRAP_ADMIN_PASSWORD"] ?? "ChangeMe123!",
             BootstrapCompanyName = c["SNAPCLAIM_COMPANY_NAME"] ?? "My Company",
-            AnthropicApiKey = c["ANTHROPIC_API_KEY"] ?? "",
-            ClaudeModel = c["SNAPCLAIM_CLAUDE_MODEL"] ?? "claude-opus-5-5",
+            OcrUrl = c["SNAPCLAIM_OCR_URL"] ?? "",
             MaxReceiptBytes = int.TryParse(c["SNAPCLAIM_MAX_RECEIPT_BYTES"], out var mb) ? mb : 8 * 1024 * 1024,
         };
     }

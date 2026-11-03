@@ -14,14 +14,14 @@
 #   api/dev.sh reset-db  drop and recreate the dev database (re-seeds on next start)
 #   api/dev.sh fresh     reset-db + build + start
 #
-# Put ANTHROPIC_API_KEY in api/.env.dev (gitignored) to enable receipt extraction locally.
+# Receipt OCR runs in the snapclaim-ocr-dev container (built from ocr/ by `up`).
 set -euo pipefail
 export MSYS_NO_PATHCONV=1
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WIN_ROOT="$(cd "$ROOT" && pwd -W 2>/dev/null || echo "$ROOT")"
 PORT="${SNAPCLAIM_DEV_PORT:-8097}"
 
-ENV_ARGS='SNAPCLAIM_DB_CONNECTION="Host=snapclaim-db-dev;Database=snapclaim;Username=snapclaim;Password=snapclaim" SNAPCLAIM_JWT_SIGNING_KEY="dev-only-signing-key-change-me-0123456789abcdef" SNAPCLAIM_SQL_DIR=/src/db/sql SNAPCLAIM_SEED_DIR=/src/db/seed SNAPCLAIM_SEED_DEV=true ASPNETCORE_ENVIRONMENT=Development'
+ENV_ARGS='SNAPCLAIM_DB_CONNECTION="Host=snapclaim-db-dev;Database=snapclaim;Username=snapclaim;Password=snapclaim" SNAPCLAIM_JWT_SIGNING_KEY="dev-only-signing-key-change-me-0123456789abcdef" SNAPCLAIM_SQL_DIR=/src/db/sql SNAPCLAIM_SEED_DIR=/src/db/seed SNAPCLAIM_SEED_DEV=true SNAPCLAIM_OCR_URL=http://snapclaim-ocr-dev:8080 ASPNETCORE_ENVIRONMENT=Development'
 if [ -f "$ROOT/api/.env.dev" ]; then
   # KEY=value lines only; quotes optional.
   while IFS='=' read -r k v; do
@@ -37,8 +37,11 @@ up() {
     docker run -d --name snapclaim-db-dev --network snapclaim-dev -p 5497:5432 -e POSTGRES_DB=snapclaim -e POSTGRES_USER=snapclaim -e POSTGRES_PASSWORD=snapclaim -e TZ=Asia/Kolkata postgres:16-alpine >/dev/null
   docker ps -a --format '{{.Names}}' | grep -qx snapclaim-sdk || \
     docker run -d --name snapclaim-sdk --network snapclaim-dev -p "$PORT:8080" -v "$WIN_ROOT:/src" -w /src/api -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -e NUGET_PACKAGES=/nuget mcr.microsoft.com/dotnet/sdk:9.0 sleep infinity >/dev/null
-  docker start snapclaim-db-dev snapclaim-sdk >/dev/null
-  echo "dev containers up (api on :$PORT, postgres on :5497)"
+  docker image inspect snapclaim-ocr:dev >/dev/null 2>&1 || docker build -q -t snapclaim-ocr:dev "$WIN_ROOT/ocr" >/dev/null
+  docker ps -a --format '{{.Names}}' | grep -qx snapclaim-ocr-dev || \
+    docker run -d --name snapclaim-ocr-dev --network snapclaim-dev snapclaim-ocr:dev >/dev/null
+  docker start snapclaim-db-dev snapclaim-sdk snapclaim-ocr-dev >/dev/null
+  echo "dev containers up (api on :$PORT, postgres on :5497, ocr on the dev network)"
 }
 
 build() {

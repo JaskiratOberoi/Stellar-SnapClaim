@@ -41,7 +41,7 @@ api/dev.sh smoke     # end-to-end check: employee → manager → director
 
 Dev sign-ins (seeded when `SNAPCLAIM_SEED_DEV=true`): `admin@snapclaim.local / ChangeMe123!` (super admin), `director@snapclaim.local / Director123!` (admin), `manager@snapclaim.local / Manager123!` (approver), `ravi@snapclaim.local` and `anita@snapclaim.local / Employee123!`.
 
-To enable Snap & Extract locally put `ANTHROPIC_API_KEY=sk-ant-...` in `api/.env.dev` (gitignored) and restart.
+Snap & Extract runs on the box with RapidOCR (`ocr/`, free and offline); `api/dev.sh up` builds and starts it alongside the dev API.
 
 App:
 

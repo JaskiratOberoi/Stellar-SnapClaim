@@ -145,7 +145,7 @@ CREATE TABLE receipt (
   sha256            text NOT NULL,
   data              bytea NOT NULL,
   extraction_status extraction_status NOT NULL DEFAULT 'pending',
-  extraction        jsonb,                          -- what Claude read: vendor, date, total, tax, currency, lines, category
+  extraction        jsonb,                          -- what the OCR read: vendor, date, total, tax, currency, lines, category
   extraction_error  text,
   extraction_model  text,
   created_at        timestamptz NOT NULL DEFAULT now()

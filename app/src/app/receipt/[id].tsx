@@ -32,7 +32,7 @@ export default function ReceiptScreen() {
         ) : null}
         {data?.extraction_status === 'done' && data.extraction ? (
           <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
-            Read by {data.extraction_model}: {[data.extraction.vendor, data.extraction.spent_on, data.extraction.total !== null ? `${data.extraction.currency ?? ''} ${data.extraction.total}` : null].filter(Boolean).join(' · ')}
+            Read from the receipt: {[data.extraction.vendor, data.extraction.spent_on, data.extraction.total !== null ? `${data.extraction.currency ?? ''} ${data.extraction.total}` : null].filter(Boolean).join(' · ')}
           </ThemedText>
         ) : null}
       </Screen>

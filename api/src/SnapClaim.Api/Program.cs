@@ -20,7 +20,7 @@ builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<Migrator>();
 builder.Services.AddSingleton<JwtIssuer>();
 builder.Services.AddSingleton<Bootstrap>();
-builder.Services.AddSingleton<ReceiptExtractor>();
+builder.Services.AddHttpClient<ReceiptExtractor>(c => c.Timeout = TimeSpan.FromSeconds(90)); // OCR on a CPU can take a while for a 12 MP photo
 builder.Services.AddSingleton<ExcelExporter>();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();

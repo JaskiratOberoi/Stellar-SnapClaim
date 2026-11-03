@@ -4,7 +4,9 @@
 // Walks the whole flow: employee uploads a receipt and files a claim, manager
 // approves, director reviews the month, downloads the Excel and closes it.
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join as joinPath } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -28,8 +30,8 @@ async function login(email, password) {
   return r.data;
 }
 
-// A tiny valid 1x1 PNG so the upload path is exercised even without an API key.
-const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+// A synthetic Cafe Coffee Day bill (app/scripts/receipt-fixture.cjs renders it) so OCR has something to read.
+const png = readFileSync(joinPath(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'receipt-sample.png'));
 const today = new Date();
 const period = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 const spentOn = today.toISOString().slice(0, 10);
@@ -48,7 +50,7 @@ const meals = cats.data.items.find((c) => c.code === 'meals');
 log(`${cats.data.items.length} categories; meals = ${meals.id}`);
 
 const caps = await call('GET', '/api/v1/receipts/capabilities', { token: ravi.access_token });
-log(`Receipt extraction ${caps.data.extraction_enabled ? 'ENABLED (' + caps.data.model + ')' : 'disabled (no ANTHROPIC_API_KEY)'}`);
+log(`Receipt extraction ${caps.data.extraction_enabled ? 'enabled (' + caps.data.model + ')' : 'disabled (no SNAPCLAIM_OCR_URL)'}`);
 
 const form = new FormData();
 form.append('file', new Blob([png], { type: 'image/png' }), 'receipt.png');
@@ -56,6 +58,20 @@ const upload = await call('POST', '/api/v1/receipts/', { token: ravi.access_toke
 assert.equal(upload.status, 200, JSON.stringify(upload.data));
 const receipt = upload.data;
 log(`Uploaded receipt ${receipt.id} (${receipt.byte_size} bytes, extraction ${receipt.extraction_status})`);
+
+if (caps.data.extraction_enabled) {
+  assert.equal(receipt.extraction_status, 'done', `extraction: ${receipt.extraction_error}`);
+  const x = receipt.extraction;
+  assert.equal(x.is_receipt, true);
+  assert.equal(x.total, 819, `total read as ${x.total}`);
+  assert.equal(x.spent_on, '2026-03-12', `date read as ${x.spent_on}`);
+  assert.match(x.vendor ?? '', /cafe\s*coffee\s*day/i, `vendor read as ${x.vendor}`);
+  assert.equal(x.category, 'meals', `category guessed as ${x.category}`);
+  assert.equal(x.currency, 'INR');
+  assert.equal(x.tax, 39, `tax read as ${x.tax}`);
+  assert.match(x.invoice_no ?? '', /0142/, `invoice read as ${x.invoice_no}`);
+  log(`OCR read ${x.vendor} · ${x.spent_on} · ${x.currency} ${x.total} (tax ${x.tax}) · ${x.category} · ${x.lines.length} line(s) · ${x.confidence} confidence`);
+}
 
 const check = await call('POST', '/api/v1/policy/check', {
   token: ravi.access_token,

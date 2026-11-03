@@ -28,12 +28,24 @@ services:
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       SNAPCLAIM_DB_CONNECTION: Host=snapclaim-db;Database=snapclaim;Username=snapclaim;Password=${SNAPCLAIM_DB_PASSWORD}
+      SNAPCLAIM_OCR_URL: http://snapclaim-ocr:8080
       TZ: Asia/Kolkata
     depends_on:
       snapclaim-db:
         condition: service_healthy
+      snapclaim-ocr:
+        condition: service_started
     ports:
       - "127.0.0.1:${SNAPCLAIM_API_PORT:-3170}:8080"
+
+  # Receipt OCR on the box (RapidOCR, CPU): free, no keys, reachable only from the API.
+  snapclaim-ocr:
+    build:
+      context: ../ocr
+    container_name: snapclaim-ocr
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Kolkata
 
   # Static web build of the Expo app (managers and directors on the desktop).
   snapclaim-web:
