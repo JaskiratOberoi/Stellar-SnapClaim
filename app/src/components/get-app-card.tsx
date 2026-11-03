@@ -33,12 +33,13 @@ function dismissed(): boolean {
 }
 
 /**
- * On the web, on first use: how to get SnapClaim onto a phone. Android gets the
- * APK the site serves at /downloads; iPhone gets the home-screen steps; a desktop
- * gets both pointers. Hidden once dismissed or when already running installed.
+ * On the web, on first use: the Android app the site serves at /downloads.
+ * Android gets the download itself; a desktop gets it to send across to the
+ * phone. Nothing on iPhone (no APK there), nothing until a build is published,
+ * and nothing once dismissed or when already running as the installed app.
  */
 export function GetAppCard() {
-  const [hidden, setHidden] = useState(() => Platform.OS !== 'web' || installed() || dismissed());
+  const [hidden, setHidden] = useState(() => Platform.OS !== 'web' || installed() || dismissed() || device() === 'ios');
   const [latest, setLatest] = useState<Latest | null>(null);
   const kind = device();
 
@@ -70,38 +71,28 @@ export function GetAppCard() {
   const download = () => {
     if (apk) window.location.href = apk;
   };
-  const sizeNote = latest ? ` · ${Math.round(latest.size / 1024 / 1024)} MB · v${latest.version} (${latest.build})` : '';
+  const sizeNote = latest ? `${Math.round(latest.size / 1024 / 1024)} MB · v${latest.version} (${latest.build})` : '';
 
   return (
-    <Presence visible={!hidden} y={10} style={styles.wrap}>
+    <Presence visible={!hidden && apk !== null} y={10} style={styles.wrap}>
       <GroupCard
         tone="sage"
         icon={{ ios: 'iphone', android: 'smartphone', web: 'smartphone' }}
-        kicker="On your phone"
+        kicker="Android app"
         title="Get the app"
-        subtitle={kind === 'android' ? 'Snap receipts with the camera, straight from your home screen.' : kind === 'ios' ? 'Add SnapClaim to your home screen for the camera and a full-screen app.' : 'SnapClaim works best on a phone, where the camera snaps the bill.'}
+        subtitle={kind === 'android' ? 'Snap receipts with the camera, straight from your home screen.' : 'SnapClaim works best on an Android phone, where the camera snaps the bill.'}
         footer={
           <>
-            {kind !== 'ios' && apk ? (
-              <Button title={kind === 'android' ? 'Download for Android' : 'Download the Android app'} icon={{ ios: 'arrow.down.circle.fill', android: 'download', web: 'download' }} compact onPress={download} />
-            ) : null}
+            <Button title={kind === 'android' ? 'Download for Android' : 'Download the Android app'} icon={{ ios: 'arrow.down.circle.fill', android: 'download', web: 'download' }} compact onPress={download} />
             <Button title="Not now" variant="ghost" compact onPress={dismiss} />
           </>
         }>
         <View style={styles.body}>
-          {kind === 'android' ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              {apk ? `Download the app, open the file, and allow installs from your browser when Android asks${sizeNote}.` : 'The Android app is being prepared. Meanwhile, open the browser menu and choose "Add to Home screen".'}
-            </ThemedText>
-          ) : kind === 'ios' ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              {'In Safari, tap Share, then "Add to Home Screen". SnapClaim opens full screen with its own icon.'}
-            </ThemedText>
-          ) : (
-            <ThemedText type="small" themeColor="textSecondary">
-              Open expense.genomicslab.in on the phone and add it to the home screen, or send the Android app to the phone{apk ? sizeNote : ''}.
-            </ThemedText>
-          )}
+          <ThemedText type="small" themeColor="textSecondary">
+            {kind === 'android'
+              ? `Download the app, open the file, and allow installs from your browser when Android asks. ${sizeNote}.`
+              : `Download the installer and send it to the phone, or open expense.genomicslab.in there to get it directly. ${sizeNote}.`}
+          </ThemedText>
         </View>
       </GroupCard>
     </Presence>
