@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
+import { UpdateBanner } from '@/components/update-banner';
 import { Palette } from '@/constants/theme';
 import { GuideProvider } from '@/guide/guide';
 import { GuideOverlay } from '@/guide/overlay';
@@ -58,6 +59,7 @@ function Navigation({ fontsLoaded }: { fontsLoaded: boolean }) {
     </Stack>
     {/* The coach layer sits over every screen, tab bar included. */}
     <GuideOverlay />
+    <UpdateBanner />
     </View>
   );
 }

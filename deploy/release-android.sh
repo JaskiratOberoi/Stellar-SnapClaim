@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# NOT WIRED UP AT THE MOMENT: the site promotes the home-screen (PWA) install
+# instead, and nginx no longer serves /downloads. Kept for when the APK returns.
 # Publish the latest finished Android build to the site's /downloads so the
 # "Get the app" card hands people a stable link. Run from the repo root after
 # `npx eas-cli@latest build --platform android --profile preview` finishes:

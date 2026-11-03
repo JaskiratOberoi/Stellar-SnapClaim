@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Field } from '@/components/field';
-import { GetAppCard } from '@/components/get-app-card';
+import { InstallCard } from '@/components/install-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
@@ -86,7 +86,7 @@ export default function SignInScreen() {
           </Reveal>
 
           <Reveal delay={560} y={0} style={styles.getApp}>
-            <GetAppCard />
+            <InstallCard />
           </Reveal>
           <Reveal delay={620} y={0}>
             <ThemedText type="small" themeColor="textMuted" style={styles.footer}>

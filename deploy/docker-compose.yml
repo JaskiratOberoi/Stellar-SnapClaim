@@ -58,9 +58,6 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${SNAPCLAIM_WEB_PORT:-3171}:80"
-    # The latest Android build, dropped in by deploy/release-android.sh; no rebuild needed.
-    volumes:
-      - ./downloads:/usr/share/nginx/html/downloads:ro
 
 volumes:
   snapclaim_pgdata:

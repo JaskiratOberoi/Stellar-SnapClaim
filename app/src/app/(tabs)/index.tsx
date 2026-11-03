@@ -6,7 +6,7 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { ReceiptArt } from '@/components/art';
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
-import { GetAppCard } from '@/components/get-app-card';
+import { InstallCard } from '@/components/install-card';
 import { ClaimRow } from '@/components/claim-row';
 import { GroupCard } from '@/components/group-card';
 import { EmptyNote, ErrorNote, Screen, SectionTitle } from '@/components/screen';
@@ -156,7 +156,7 @@ export default function TodayScreen() {
           </StatCard>
         </Reveal>
 
-        <GetAppCard />
+        <InstallCard />
 
         <SectionTitle>Your claims</SectionTitle>
         {list.loading && items.length === 0 ? <ClaimsSkeleton /> : null}
