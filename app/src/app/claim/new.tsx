@@ -9,9 +9,11 @@ import { Chip } from '@/components/chip';
 import { Field, FieldGroup } from '@/components/field';
 import { FlagList } from '@/components/flag-list';
 import { Card, Loading, Screen, SectionTitle } from '@/components/screen';
+import { StepsStrip } from '@/components/steps-strip';
 import { ThemedText } from '@/components/themed-text';
 import { categoryIcon } from '@/constants/status';
 import { CategoryTone, PhoneWidth, Radius, Spacing } from '@/constants/theme';
+import { useGuide } from '@/guide/guide';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
 import { Presence } from '@/motion/presence';
@@ -33,7 +35,10 @@ export default function NewClaimScreen() {
   const wide = useWindowDimensions().width >= PhoneWidth;
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { categories, company, extractionEnabled } = useSession();
+  const guide = useGuide();
   const editing = typeof id === 'string' && id.length > 0;
+  // The first few claims get the steps spelled out; sending one, or closing the strip, ends that.
+  const showSteps = !editing && guide.ready && !guide.seen('newclaim');
 
   const [loadingExisting, setLoadingExisting] = useState(editing);
   // An approver editing someone's submitted claim saves it in place; only the claimant submits.
@@ -177,7 +182,8 @@ export default function NewClaimScreen() {
       const detail = editing
         ? await api<ClaimDetail>(`/api/v1/claims/${id}`, { method: 'PUT', body: input })
         : await api<ClaimDetail>('/api/v1/claims/', { body: input });
-      router.replace({ pathname: '/claim/[id]', params: { id: detail.claim.id } });
+      if (submit) guide.markSeen('newclaim');
+      router.replace({ pathname: '/claim/[id]', params: { id: detail.claim.id, sent: submit ? '1' : undefined } });
     } catch (err) {
       if (err instanceof ApiError && err.code === 'policy_blocked') {
         const details = err.details as { flags?: PolicyFlag[] } | undefined;
@@ -199,6 +205,16 @@ export default function NewClaimScreen() {
         <Screen title={editing ? 'Edit claim' : 'New claim'} subtitle={extractionEnabled ? 'Snap the bill, check the details, submit' : 'Attach the bill and fill in the details'} back scroll>
           <>
             {loadingExisting ? <Loading /> : null}
+            {showSteps ? (
+              <StepsStrip
+                steps={[
+                  { label: 'Attach the bill', done: receipts.length > 0 },
+                  { label: 'Check the details', done: title.trim().length > 0 && parsedAmount > 0 && spentDate !== null },
+                  { label: 'Send it', done: false },
+                ]}
+                onDismiss={() => guide.markSeen('newclaim')}
+              />
+            ) : null}
 
             <SectionTitle>Receipt</SectionTitle>
             <View style={styles.receiptRow}>

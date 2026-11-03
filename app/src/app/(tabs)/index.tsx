@@ -1,18 +1,23 @@
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { ReceiptArt } from '@/components/art';
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
 import { GetAppCard } from '@/components/get-app-card';
 import { ClaimRow } from '@/components/claim-row';
 import { GroupCard } from '@/components/group-card';
-import { EmptyNote, ErrorNote, Loading, Screen, SectionTitle } from '@/components/screen';
+import { EmptyNote, ErrorNote, Screen, SectionTitle } from '@/components/screen';
+import { ClaimsSkeleton } from '@/components/skeleton';
 import { StatCard } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
 import { STATUS_GROUP, STATUS_ICON, STATUS_ORDER } from '@/constants/status';
 import { PhoneWidth, Radius, Spacing, StatusTone, Tones } from '@/constants/theme';
+import { useTourOnce } from '@/guide/guide';
+import { GuideTarget } from '@/guide/target';
+import { homeTour } from '@/guide/tours';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -28,7 +33,7 @@ type Page = { items: Claim[]; total: number };
 export default function TodayScreen() {
   const theme = useTheme();
   const wide = useWindowDimensions().width >= PhoneWidth;
-  const { user, company, policy } = useSession();
+  const { user, company, policy, can, extractionEnabled } = useSession();
   const [filter, setFilter] = useState<Filter>('all');
   const list = useRequest(() => api<Page>('/api/v1/claims/?scope=mine&limit=500'), []);
   const reload = list.reload;
@@ -66,6 +71,14 @@ export default function TodayScreen() {
   const dateLine = `${now.toLocaleDateString('en-GB', { weekday: 'long' })} ${now.getDate()} ${now.toLocaleDateString('en-GB', { month: 'long' })}`;
   const firstName = user?.full_name.split(' ')[0] ?? '';
 
+  // The welcome tour, the first time this person lands here with their claims loaded.
+  const tour = useMemo(
+    () => (user ? homeTour({ firstName, managerName: user.manager_name ?? null, hasCap: cap !== null, approves: can('claims.approve'), reviews: can('months.review'), extraction: extractionEnabled }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.id, firstName, user?.manager_name, cap, extractionEnabled],
+  );
+  useTourOnce(tour, list.data !== null);
+
   const settings = (
     <Tap accessibilityRole="button" accessibilityLabel="Settings" hitSlop={8} scale={0.9} onPress={() => router.push('/more')} style={styles.gear}>
       <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} size={22} tintColor={theme.textSecondary} />
@@ -75,18 +88,19 @@ export default function TodayScreen() {
   return (
     <Screen title={greeting} eyebrow={dateLine} large action={settings} scroll>
       <>
-        <View style={styles.chips}>
+        <GuideTarget id="chips" style={styles.chips}>
           <Chip label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
           {STATUS_ORDER.map((s) => {
             const n = items.filter((c) => c.status === s).length;
             return <Chip key={s} label={n ? `${STATUS_GROUP[s]} · ${n}` : STATUS_GROUP[s]} tone={StatusTone[s]} icon={STATUS_ICON[s]} selected={filter === s} onPress={() => setFilter(filter === s ? 'all' : s)} />;
           })}
-        </View>
+        </GuideTarget>
 
         {list.error ? <ErrorNote message={list.error} onRetry={list.reload} /> : null}
 
         <View style={[styles.grid, wide && styles.gridWide]}>
           <Reveal y={10} style={styles.cell}>
+            <GuideTarget id="month">
             <StatCard
               tone="green"
               icon={{ ios: 'indianrupeesign.circle.fill', android: 'payments', web: 'payments' }}
@@ -98,8 +112,10 @@ export default function TodayScreen() {
               fraction={cap !== null ? total / cap : undefined}
               note={live.length ? `${pluralise(live.length, 'claim')} this month` : `Nothing claimed yet, ${firstName}`}
             />
+            </GuideTarget>
           </Reveal>
           <Reveal y={10} delay={60} style={styles.cell}>
+            <GuideTarget id="waiting">
             <StatCard
               tone="amber"
               icon={STATUS_ICON.submitted}
@@ -112,6 +128,7 @@ export default function TodayScreen() {
               note={user?.manager_name ? `Goes to ${user.manager_name}` : 'No approver set'}
               delay={60}
             />
+            </GuideTarget>
           </Reveal>
         </View>
         <Reveal y={10} delay={120} style={styles.full}>
@@ -126,11 +143,15 @@ export default function TodayScreen() {
             delay={120}>
             <View style={styles.weekRow}>
               <View style={styles.ticks}>
-                {days.map((d) => (
-                  <View key={d} style={[styles.tick, { borderColor: Tones.blue.base, backgroundColor: spentDays.has(d) ? Tones.blue.base : 'transparent' }]} />
+                {days.map((d, i) => (
+                  <Reveal key={d} delay={200 + i * 40} y={4}>
+                    <View style={[styles.tick, { borderColor: Tones.blue.base, backgroundColor: spentDays.has(d) ? Tones.blue.base : 'transparent' }]} />
+                  </Reveal>
                 ))}
               </View>
-              <Button title="Snap a receipt" tone="blue" compact icon={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }} onPress={() => router.push('/claim/new')} />
+              <GuideTarget id="snap">
+                <Button title="Snap a receipt" tone="blue" compact icon={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }} onPress={() => router.push('/claim/new')} />
+              </GuideTarget>
             </View>
           </StatCard>
         </Reveal>
@@ -138,7 +159,7 @@ export default function TodayScreen() {
         <GetAppCard />
 
         <SectionTitle>Your claims</SectionTitle>
-        {list.loading && items.length === 0 ? <Loading /> : null}
+        {list.loading && items.length === 0 ? <ClaimsSkeleton /> : null}
         {!list.loading && groups.length === 0 ? (
           <GroupCard
             tone="sage"
@@ -152,7 +173,10 @@ export default function TodayScreen() {
                 <Button title="Add by hand" variant="ghost" onPress={() => router.push('/claim/new')} />
               </>
             }>
-            <EmptyNote>A receipt reads itself into a claim; the policy check runs as you type.</EmptyNote>
+            <View style={styles.emptyArt}>
+              <ReceiptArt width={168} />
+            </View>
+            <EmptyNote>{filter === 'all' ? 'Snap the bill and it reads itself into a claim; the policy check runs as you type.' : 'Clear the filter to see every claim.'}</EmptyNote>
           </GroupCard>
         ) : null}
         {groups.map((g, gi) => {
@@ -205,6 +229,7 @@ const styles = StyleSheet.create({
   ticks: { flexDirection: 'row', gap: Spacing.one + Spacing.half },
   tick: { width: 14, height: 18, borderRadius: 4, borderWidth: 1.5 },
   group: { paddingTop: Spacing.three },
+  emptyArt: { alignItems: 'center', paddingTop: Spacing.two },
   actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.four },
   foot: { paddingHorizontal: Spacing.three, paddingTop: Spacing.four, textAlign: 'center' },
   pill: { borderRadius: Radius.pill },

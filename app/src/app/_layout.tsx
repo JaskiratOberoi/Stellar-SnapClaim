@@ -2,9 +2,11 @@ import { Fraunces_400Regular, Fraunces_400Regular_Italic, useFonts } from '@expo
 import { DefaultTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { Palette } from '@/constants/theme';
+import { GuideProvider } from '@/guide/guide';
+import { GuideOverlay } from '@/guide/overlay';
 import { SessionProvider, useSession } from '@/hooks/use-session';
 
 SplashScreen.preventAutoHideAsync();
@@ -19,7 +21,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={theme}>
       <SessionProvider>
-        <Navigation fontsLoaded={fontsLoaded} />
+        <GuideProvider>
+          <Navigation fontsLoaded={fontsLoaded} />
+        </GuideProvider>
       </SessionProvider>
     </ThemeProvider>
   );
@@ -37,6 +41,7 @@ function Navigation({ fontsLoaded }: { fontsLoaded: boolean }) {
   if (!show) return null;
   const signedIn = user !== null;
   return (
+    <View style={styles.root}>
     <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: Palette.background } }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
@@ -51,5 +56,10 @@ function Navigation({ fontsLoaded }: { fontsLoaded: boolean }) {
         <Stack.Screen name="sign-in" options={{ animation: 'fade', animationTypeForReplace: 'pop' }} />
       </Stack.Protected>
     </Stack>
+    {/* The coach layer sits over every screen, tab bar included. */}
+    <GuideOverlay />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });

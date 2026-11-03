@@ -3,16 +3,21 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { InboxArt } from '@/components/art';
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
 import { ClaimRow } from '@/components/claim-row';
 import { Field } from '@/components/field';
 import { GroupCard } from '@/components/group-card';
-import { EmptyNote, ErrorNote, Loading, Screen, SectionTitle } from '@/components/screen';
+import { EmptyNote, ErrorNote, Screen, SectionTitle } from '@/components/screen';
+import { ClaimsSkeleton } from '@/components/skeleton';
 import { StatCard } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
 import { STATUS_ICON } from '@/constants/status';
 import { PhoneWidth, Radius, SidebarWidth, Spacing } from '@/constants/theme';
+import { useTourOnce } from '@/guide/guide';
+import { GuideTarget } from '@/guide/target';
+import { approvalsTour } from '@/guide/tours';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -40,6 +45,7 @@ export default function ApprovalsScreen() {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  useTourOnce(approvalsTour(), data !== null);
 
   const currency = company?.currency;
   const money = useCallback((n: number) => formatMoney(Math.round(n), currency), [currency]);
@@ -100,6 +106,7 @@ export default function ApprovalsScreen() {
             />
           </Reveal>
           <Reveal y={10} delay={60} style={styles.cell}>
+            <GuideTarget id="flagged">
             <StatCard
               tone="pink"
               icon={{ ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' }}
@@ -112,6 +119,7 @@ export default function ApprovalsScreen() {
               note="Over a cap, late, or a possible duplicate"
               delay={60}
             />
+            </GuideTarget>
           </Reveal>
         </View>
 
@@ -125,19 +133,34 @@ export default function ApprovalsScreen() {
           Queue
         </SectionTitle>
         {error ? <ErrorNote message={error} onRetry={reload} /> : null}
-        {loading && all.length === 0 ? <Loading /> : null}
+        {loading && all.length === 0 ? <ClaimsSkeleton rows={2} /> : null}
+        <GuideTarget id={items.length ? 'queue-card' : 'queue'}>
         <GroupCard
           tone="amber"
           icon={STATUS_ICON.submitted}
           kicker={pluralise(items.length, 'claim')}
           title={onlyFlagged ? 'Flagged' : 'Submitted'}
           subtitle={items.length ? `${formatMoney(items.reduce((s, c) => s + c.amount, 0), currency)} in total` : undefined}
-          trailing={items.length ? <Chip label={selected.size === items.length ? 'Clear' : 'Select all'} onPress={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((c) => c.id)))} /> : undefined}>
-          {items.length === 0 && !loading ? <EmptyNote>Nothing waiting for you. Submitted claims from your team land here.</EmptyNote> : null}
+          trailing={
+            items.length ? (
+              <GuideTarget id="queue">
+                <Chip label={selected.size === items.length ? 'Clear' : 'Select all'} onPress={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((c) => c.id)))} />
+              </GuideTarget>
+            ) : undefined
+          }>
+          {items.length === 0 && !loading ? (
+            <>
+              <View style={styles.emptyArt}>
+                <InboxArt width={168} />
+              </View>
+              <EmptyNote>{onlyFlagged ? 'Nothing flagged. Every submitted claim is within policy.' : 'Nothing waiting for you. Submitted claims from your team land here, ready to tick and approve.'}</EmptyNote>
+            </>
+          ) : null}
           {items.map((c, i) => (
             <ClaimRow key={c.id} claim={c} index={i} showEmployee showStatus={false} selected={selected.has(c.id)} onToggleSelect={toggle} last={i === items.length - 1} />
           ))}
         </GroupCard>
+        </GuideTarget>
       </>
       <Presence
         visible={chosen.length > 0 || notice !== null}
@@ -174,6 +197,7 @@ const styles = StyleSheet.create({
   gridWide: { flexDirection: 'row' },
   cell: { flex: 1 },
   chips: { flexDirection: 'row', gap: Spacing.two },
+  emptyArt: { alignItems: 'center', paddingTop: Spacing.two },
   bar: {
     position: 'absolute',
     left: Spacing.three,

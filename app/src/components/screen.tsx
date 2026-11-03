@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import type { ReactNode } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useMemo, useRef, type ComponentRef, type ReactNode } from 'react';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { MaxContentWidth, Radius, SidebarWidth, Spacing } from '@/constants/theme';
+import { ScrollCtx } from '@/guide/guide';
 import { useTheme } from '@/hooks/use-theme';
 import { PageEnter } from '@/motion/page-enter';
 import { Tap } from '@/motion/tap';
@@ -38,6 +39,13 @@ export function Screen({ title, eyebrow, subtitle, action, back, large, scroll, 
   const insets = useSafeAreaInsets();
   const sidebar = useWindowDimensions().width >= SidebarWidth;
   const topBar = !sidebar || back;
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const offset = useRef(0);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    offset.current = e.nativeEvent.contentOffset.y;
+  };
+  // Lets a guided tour bring the control it points at onto the screen.
+  const scrollHandle = useMemo(() => ({ scrollBy: (dy: number) => scrollRef.current?.scrollTo({ y: Math.max(0, offset.current + dy), animated: true }) }), []);
   const body = (
     <>
       <View style={styles.header}>
@@ -83,15 +91,19 @@ export function Screen({ title, eyebrow, subtitle, action, back, large, scroll, 
           </View>
         </View>
       </View>
-      <PageEnter style={[styles.content, style]}>{children}</PageEnter>
+      <PageEnter from={back ? 'right' : 'up'} style={[styles.content, style]}>
+        {children}
+      </PageEnter>
     </>
   );
   return (
     <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
       {scroll ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 100 + bottomSpace }} keyboardShouldPersistTaps="handled">
-          {body}
-        </ScrollView>
+        <ScrollCtx.Provider value={scrollHandle}>
+          <ScrollView ref={scrollRef} onScroll={onScroll} scrollEventThrottle={32} contentContainerStyle={{ paddingBottom: insets.bottom + 100 + bottomSpace }} keyboardShouldPersistTaps="handled">
+            {body}
+          </ScrollView>
+        </ScrollCtx.Provider>
       ) : (
         body
       )}

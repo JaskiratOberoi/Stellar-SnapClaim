@@ -15,6 +15,7 @@ import { Radius, Spacing, StatusTone } from '@/constants/theme';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
+import { CheckDraw } from '@/motion/check-draw';
 import { Reveal } from '@/motion/reveal';
 import { Tap } from '@/motion/tap';
 import { api, describeError, receiptImageUrl } from '@/services/api';
@@ -33,7 +34,7 @@ const EVENT_LABEL: Record<string, string> = {
 
 export default function ClaimDetailScreen() {
   const theme = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, sent } = useLocalSearchParams<{ id: string; sent?: string }>();
   const { user } = useSession();
   const { data, error, loading, reload } = useRequest(() => api<ClaimDetail>(`/api/v1/claims/${id}`), [id]);
   useFocusEffect(
@@ -78,6 +79,21 @@ export default function ClaimDetailScreen() {
   return (
     <Screen title={claim.title} subtitle={`Claim #${claim.claim_no}${mine ? '' : ` · ${claim.employee.full_name}`}`} back scroll>
       <>
+        {sent === '1' && claim.status === 'submitted' ? (
+          <Reveal y={8} delay={120}>
+            <View style={[styles.sent, { backgroundColor: theme.successSoft }]}>
+              <CheckDraw size={48} tone="green" delay={320} />
+              <View style={styles.sentText}>
+                <ThemedText type="semibold" style={{ color: theme.success }}>
+                  Sent for approval
+                </ThemedText>
+                <ThemedText type="small" style={{ color: theme.success }}>
+                  {user?.manager_name ? `${user.manager_name} will see it in Approvals.` : 'Your approver will see it in Approvals.'} You will see the decision here.
+                </ThemedText>
+              </View>
+            </View>
+          </Reveal>
+        ) : null}
         <Reveal y={10}>
         <View style={styles.hero}>
           <StatCard
@@ -249,6 +265,8 @@ function Meta({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   hero: { marginTop: Spacing.two, marginHorizontal: Spacing.three },
+  sent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, marginTop: Spacing.two, marginHorizontal: Spacing.three, padding: Spacing.three, borderRadius: Radius.medium },
+  sentText: { flex: 1, gap: Spacing.half },
   facts: { marginTop: Spacing.three },
   meta: { flexDirection: 'row', gap: Spacing.three, paddingVertical: Spacing.one },
   metaLabel: { width: 120 },

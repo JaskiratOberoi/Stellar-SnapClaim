@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { LedgerArt } from '@/components/art';
 import { Button } from '@/components/button';
 import { ClaimRow } from '@/components/claim-row';
 import { GroupCard } from '@/components/group-card';
@@ -11,6 +12,9 @@ import { StatCard } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
 import { STATUS_ICON } from '@/constants/status';
 import { Fonts, PhoneWidth, Spacing } from '@/constants/theme';
+import { useTourOnce } from '@/guide/guide';
+import { GuideTarget } from '@/guide/target';
+import { reportsTour } from '@/guide/tours';
 import { useRequest } from '@/hooks/use-request';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -36,6 +40,7 @@ export default function ReportsScreen() {
   const [busy, setBusy] = useState<'export' | 'close' | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  useTourOnce(reportsTour(can('months.close')), data !== null);
   const currency = company?.currency;
   const money = useCallback((n: number) => formatMoney(Math.round(n), currency), [currency]);
   const whole = (n: number) => String(Math.round(n));
@@ -80,7 +85,7 @@ export default function ReportsScreen() {
   return (
     <Screen title="Month-end review" subtitle="The month by person and by category. Export the workbook, then close it to clear what was approved." scroll>
       <>
-        <View style={[styles.nav, { borderColor: theme.border }]}>
+        <GuideTarget id="month-nav" style={[styles.nav, { borderColor: theme.border }]}>
           <Tap accessibilityRole="button" accessibilityLabel="Previous month" scale={0.88} hitSlop={8} onPress={() => setPeriod(shiftPeriod(period, -1))} style={styles.navButton}>
             <SymbolView name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }} size={18} tintColor={theme.textSecondary} />
           </Tap>
@@ -101,7 +106,7 @@ export default function ReportsScreen() {
           <Tap accessibilityRole="button" accessibilityLabel="Next month" disabled={isCurrent} scale={0.88} hitSlop={8} onPress={() => setPeriod(shiftPeriod(period, 1))} style={[styles.navButton, { opacity: isCurrent ? 0.3 : 1 }]}>
             <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={18} tintColor={theme.textSecondary} />
           </Tap>
-        </View>
+        </GuideTarget>
 
         {error ? <ErrorNote message={error} onRetry={reload} /> : null}
         {loading && !data ? <Loading /> : null}
@@ -125,7 +130,7 @@ export default function ReportsScreen() {
               </Reveal>
             </View>
 
-            <View style={styles.actions}>
+            <GuideTarget id="month-actions" style={styles.actions}>
               <Button title="Export Excel" variant="secondary" icon={{ ios: 'tablecells', android: 'table_chart', web: 'table_chart' }} loading={busy === 'export'} disabled={busy !== null} onPress={exportExcel} />
               {can('months.close') ? (
                 <Button
@@ -138,7 +143,7 @@ export default function ReportsScreen() {
                 />
               ) : null}
               {confirmClose ? <Button title="Cancel" variant="ghost" onPress={() => setConfirmClose(false)} /> : null}
-            </View>
+            </GuideTarget>
             <Presence visible={notice !== null} y={6}>
               <ThemedText type="small" themeColor="textSecondary" style={styles.notice}>
                 {notice}
@@ -153,7 +158,10 @@ export default function ReportsScreen() {
             <Reveal key={`t${period}`} y={10} delay={80}>
               <SectionTitle>By employee</SectionTitle>
               {data.by_employee.length === 0 ? (
-                <EmptyNote>No claims this month.</EmptyNote>
+                <Card style={styles.emptyCard}>
+                  <LedgerArt width={160} />
+                  <EmptyNote>No claims this month yet. As the team submits and managers approve, the month fills in here by person and by category.</EmptyNote>
+                </Card>
               ) : (
                 <Card style={styles.table}>
                   {data.by_employee.map((e, i) => (
@@ -229,6 +237,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.four },
   notice: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, lineHeight: 20 },
   table: { gap: 0, paddingVertical: Spacing.one },
+  emptyCard: { alignItems: 'center', gap: 0 },
   tr: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.two + Spacing.half },
   tdName: { flex: 1, gap: Spacing.half },
   tdAmount: { alignItems: 'flex-end', gap: Spacing.half },

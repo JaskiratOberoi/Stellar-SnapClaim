@@ -4,12 +4,15 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { Lifecycle } from '@/components/art';
 import { Button } from '@/components/button';
 import { Field, FieldGroup } from '@/components/field';
 import { Screen } from '@/components/screen';
 import { Fact, SettingsSection } from '@/components/settings-section';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
+import { useGuide } from '@/guide/guide';
+import { homeTour } from '@/guide/tours';
 import { useSession } from '@/hooks/use-session';
 import { useTheme } from '@/hooks/use-theme';
 import { Presence } from '@/motion/presence';
@@ -22,6 +25,7 @@ const ROLE_LABEL = { super_admin: 'Super admin', admin: 'Admin', approver: 'Appr
 export default function SettingsScreen() {
   const theme = useTheme();
   const { user, company, policy, extractionEnabled, can, signOut } = useSession();
+  const guide = useGuide();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [pwBusy, setPwBusy] = useState(false);
@@ -44,6 +48,13 @@ export default function SettingsScreen() {
 
   if (!user) return null;
   const companyRule = policy.find((r) => r.category_id == null);
+
+  const replayTour = async () => {
+    await guide.reset();
+    router.navigate('/');
+    const firstName = user.full_name.split(' ')[0] ?? '';
+    setTimeout(() => guide.start(homeTour({ firstName, managerName: user.manager_name ?? null, hasCap: companyRule?.max_per_month != null, approves: can('claims.approve'), reviews: can('months.review'), extraction: extractionEnabled })), 400);
+  };
 
   return (
     <Screen scroll title="Settings" subtitle="Your account, and for administrators the company setup.">
@@ -81,6 +92,18 @@ export default function SettingsScreen() {
                 No policy configured.
               </ThemedText>
             ) : null}
+          </View>
+        </SettingsSection>
+
+        <SettingsSection title="Getting around" description="The loop every claim goes through, and the guided tour from your first day.">
+          <View style={[styles.loop, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Lifecycle />
+            <ThemedText type="small" themeColor="textMuted" style={styles.loopNote}>
+              Snap the bill, submit the claim, your approver approves it, and month-end clears it for payroll.
+            </ThemedText>
+          </View>
+          <View style={styles.actions}>
+            <Button title="Replay the welcome tour" variant="secondary" compact icon={{ ios: 'sparkles', android: 'tour', web: 'tour' }} onPress={replayTour} />
           </View>
         </SettingsSection>
 
@@ -141,5 +164,7 @@ const styles = StyleSheet.create({
   linkBadge: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   linkText: { flex: 1, gap: 2 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  loop: { padding: Spacing.three, paddingTop: Spacing.three + Spacing.one, borderRadius: Radius.medium, borderWidth: 1, gap: Spacing.three },
+  loopNote: { textAlign: 'center' },
   footer: { textAlign: 'center', paddingVertical: Spacing.five, paddingHorizontal: Spacing.three },
 });
